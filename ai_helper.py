@@ -14,9 +14,8 @@ from ml_prediction import (
 # GEMINI CONFIGURATION
 # =====================================================
 
-# Put your NEW Gemini API key here temporarily.
-# Do NOT use the old key that you shared.
-API_KEY = ""
+# API key is stored securely in Streamlit Secrets
+API_KEY = st.secrets["GEMINI_API_KEY"]
 
 client = genai.Client(
     api_key=API_KEY
