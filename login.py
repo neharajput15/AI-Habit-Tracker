@@ -47,7 +47,7 @@ def register():
         use_container_width=True
     ):
 
-        if not name or not email or not password:
+        if not name.strip() or not email.strip() or not password:
             st.warning("Please fill all fields.")
             return
 
@@ -55,30 +55,47 @@ def register():
             st.error("Passwords do not match.")
             return
 
+        email = email.strip().lower()
+
         conn = get_connection()
         cursor = conn.cursor()
 
         try:
 
+            # Check whether email already exists
+            cursor.execute(
+                """
+                SELECT id
+                FROM users
+                WHERE email = ?
+                """,
+                (email,)
+            )
+
+            existing_user = cursor.fetchone()
+
+            if existing_user:
+                st.error("Email already registered. Please login.")
+                return
+
+            # Create new user
             cursor.execute(
                 """
                 INSERT INTO users
                 (name, email, password)
                 VALUES (?, ?, ?)
                 """,
-                (name, email, password)
+                (name.strip(), email, password)
             )
 
             conn.commit()
 
             st.success(
-                "Registration successful! Please login. 🎉"
+                "Registration successful! 🎉"
             )
 
-        except sqlite3.IntegrityError:
-
-            st.error(
-                "Email already registered."
+            st.info(
+                "Now select Login and enter your email and password."
             )
 
         except Exception as e:
@@ -116,26 +133,39 @@ def login():
         use_container_width=True
     ):
 
-        if not email or not password:
+        if not email.strip() or not password:
             st.warning(
                 "Please enter email and password."
             )
             return
 
+        email = email.strip().lower()
+
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            SELECT id, name
-            FROM users
-            WHERE email = ?
-            AND password = ?
-            """,
-            (email, password)
-        )
+        try:
 
-        user = cursor.fetchone()
+            cursor.execute(
+                """
+                SELECT id, name
+                FROM users
+                WHERE email = ?
+                AND password = ?
+                """,
+                (email, password)
+            )
+
+            user = cursor.fetchone()
+
+        except Exception as e:
+
+            st.error(
+                f"Login error: {e}"
+            )
+
+            conn.close()
+            return
 
         conn.close()
 
@@ -144,7 +174,7 @@ def login():
             user_id = user[0]
             name = user[1]
 
-            # Save login permanently
+            # Save login
             save_user(user_id)
 
             # Streamlit session
