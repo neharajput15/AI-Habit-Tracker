@@ -12,14 +12,22 @@ def view_habits():
 
     st.header("📋 My Habits")
 
+    user_id = st.session_state.get(
+        "user_id"
+    )
+
+    if not user_id:
+
+        st.warning(
+            "Please login first."
+        )
+
+        return
+
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
-
-        # =================================================
-        # GET USER HABITS
-        # =================================================
 
         cursor.execute(
             """
@@ -28,13 +36,12 @@ def view_habits():
                 habit_name,
                 category,
                 target,
-                reminder_time,
                 status
             FROM habits
             WHERE user_id = %s
             ORDER BY id DESC
             """,
-            (st.session_state.user_id,)
+            (user_id,)
         )
 
         habits = cursor.fetchall()
@@ -57,8 +64,7 @@ def view_habits():
             habit_name = habit[1]
             category = habit[2]
             target = habit[3]
-            reminder_time = habit[4]
-            status = habit[5]
+            status = habit[4]
 
             with st.expander(
                 f"📌 {habit_name}"
@@ -70,10 +76,6 @@ def view_habits():
 
                 st.write(
                     f"**Target:** {target}"
-                )
-
-                st.write(
-                    f"**Reminder:** {reminder_time}"
                 )
 
                 st.write(
@@ -94,17 +96,17 @@ def view_habits():
                         use_container_width=True
                     ):
 
-                        today = date.today()
+                        today = str(date.today())
 
                         try:
 
                             # -----------------------------------------
-                            # CHECK TODAY'S PROGRESS
+                            # Check if today's progress already exists
                             # -----------------------------------------
 
                             cursor.execute(
                                 """
-                                SELECT id, completed
+                                SELECT id
                                 FROM progress
                                 WHERE habit_id = %s
                                 AND completed_date = %s
@@ -118,20 +120,10 @@ def view_habits():
                             existing = cursor.fetchone()
 
                             # -----------------------------------------
-                            # ALREADY COMPLETED
+                            # Update existing record
                             # -----------------------------------------
 
-                            if existing and existing[1] == 1:
-
-                                st.info(
-                                    "This habit is already completed today. ✅"
-                                )
-
-                            # -----------------------------------------
-                            # UPDATE MISSED RECORD
-                            # -----------------------------------------
-
-                            elif existing:
+                            if existing:
 
                                 cursor.execute(
                                     """
@@ -145,30 +137,8 @@ def view_habits():
                                     )
                                 )
 
-                                cursor.execute(
-                                    """
-                                    UPDATE habits
-                                    SET status = %s
-                                    WHERE id = %s
-                                    AND user_id = %s
-                                    """,
-                                    (
-                                        "Completed",
-                                        habit_id,
-                                        st.session_state.user_id
-                                    )
-                                )
-
-                                conn.commit()
-
-                                st.success(
-                                    "Habit Completed! 🎉"
-                                )
-
-                                st.rerun()
-
                             # -----------------------------------------
-                            # INSERT NEW RECORD
+                            # Insert new record
                             # -----------------------------------------
 
                             else:
@@ -190,27 +160,31 @@ def view_habits():
                                     )
                                 )
 
-                                cursor.execute(
-                                    """
-                                    UPDATE habits
-                                    SET status = %s
-                                    WHERE id = %s
-                                    AND user_id = %s
-                                    """,
-                                    (
-                                        "Completed",
-                                        habit_id,
-                                        st.session_state.user_id
-                                    )
+                            # -----------------------------------------
+                            # Update habit status
+                            # -----------------------------------------
+
+                            cursor.execute(
+                                """
+                                UPDATE habits
+                                SET status = %s
+                                WHERE id = %s
+                                AND user_id = %s
+                                """,
+                                (
+                                    "Completed",
+                                    habit_id,
+                                    user_id
                                 )
+                            )
 
-                                conn.commit()
+                            conn.commit()
 
-                                st.success(
-                                    "Habit Completed! 🎉"
-                                )
+                            st.success(
+                                "Habit Completed! ✅"
+                            )
 
-                                st.rerun()
+                            st.rerun()
 
                         except Exception as e:
 
@@ -252,7 +226,7 @@ def view_habits():
                                 """,
                                 (
                                     habit_id,
-                                    st.session_state.user_id
+                                    user_id
                                 )
                             )
 

@@ -28,61 +28,62 @@ def create_tables():
         # USERS
         # =================================================
 
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL
             )
-        """)
+            """
+        )
 
         # =================================================
         # HABITS
         # =================================================
 
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS habits (
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 habit_name TEXT NOT NULL,
                 category TEXT,
                 target TEXT,
-                reminder_time TEXT,
                 status TEXT DEFAULT 'Pending',
 
-                CONSTRAINT fk_habit_user
                 FOREIGN KEY (user_id)
                 REFERENCES users(id)
                 ON DELETE CASCADE
             )
-        """)
+            """
+        )
 
         # =================================================
         # PROGRESS
         # =================================================
 
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS progress (
                 id SERIAL PRIMARY KEY,
                 habit_id INTEGER NOT NULL,
-                completed_date DATE NOT NULL,
+                completed_date TEXT NOT NULL,
                 completed INTEGER DEFAULT 0,
 
-                CONSTRAINT fk_progress_habit
                 FOREIGN KEY (habit_id)
                 REFERENCES habits(id)
                 ON DELETE CASCADE
             )
-        """)
+            """
+        )
 
         conn.commit()
 
     except Exception as e:
 
         conn.rollback()
-
-        print("Database error:", e)
 
         raise e
 

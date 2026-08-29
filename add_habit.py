@@ -3,15 +3,22 @@ import streamlit as st
 from database import get_connection
 
 
-# ----------------------------
-# Add Habit Function
-# ----------------------------
+# =====================================================
+# ADD HABIT
+# =====================================================
 
 def add_habit():
 
     st.header("➕ Add New Habit")
 
-    habit_name = st.text_input("Habit Name")
+    # =================================================
+    # HABIT DETAILS
+    # =================================================
+
+    habit_name = st.text_input(
+        "Habit Name",
+        placeholder="Example: Study Java"
+    )
 
     category = st.selectbox(
         "Category",
@@ -19,23 +26,30 @@ def add_habit():
             "Study",
             "Health",
             "Fitness",
-            "Personal",
-            "Work"
+            "Personal"
         ]
     )
 
     target = st.text_input(
-        "Target (Example: 2 Hours, 8 Glasses, 30 Minutes)"
+        "Target",
+        placeholder="Example: Study for 2 hours"
     )
 
-    reminder_time = st.time_input(
-        "Reminder Time"
-    )
+    # =================================================
+    # ADD BUTTON
+    # =================================================
 
-    if st.button("Save Habit"):
+    if st.button(
+        "➕ Add Habit",
+        use_container_width=True
+    ):
 
-        if not habit_name.strip() or not target.strip():
-            st.warning("Please fill all fields.")
+        if not habit_name.strip():
+
+            st.warning(
+                "Please enter a habit name."
+            )
+
             return
 
         conn = get_connection()
@@ -46,15 +60,20 @@ def add_habit():
             cursor.execute(
                 """
                 INSERT INTO habits
-                (user_id, habit_name, category, target, reminder_time, status)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (
+                    user_id,
+                    habit_name,
+                    category,
+                    target,
+                    status
+                )
+                VALUES (%s, %s, %s, %s, %s)
                 """,
                 (
                     st.session_state.user_id,
                     habit_name.strip(),
                     category,
                     target.strip(),
-                    str(reminder_time),
                     "Pending"
                 )
             )
@@ -62,10 +81,10 @@ def add_habit():
             conn.commit()
 
             st.success(
-                "✅ Habit Added Successfully!"
+                "Habit added successfully! 🎉"
             )
 
-            st.balloons()
+            st.rerun()
 
         except Exception as e:
 
