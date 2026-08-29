@@ -21,16 +21,12 @@ def analytics():
 
         return
 
-    # =================================================
-    # DATABASE CONNECTION
-    # =================================================
-
     conn = get_connection()
 
     try:
 
         # =================================================
-        # GET USER'S HABIT PROGRESS
+        # GET USER'S HABIT DATA
         # =================================================
 
         query = """
@@ -43,7 +39,7 @@ def analytics():
         LEFT JOIN progress p
             ON h.id = p.habit_id
         WHERE h.user_id = %s
-        ORDER BY p.completed_date
+        ORDER BY p.completed_date ASC
         """
 
         df = pd.read_sql_query(
@@ -64,6 +60,7 @@ def analytics():
 
         conn.close()
 
+
     # =================================================
     # NO DATA
     # =================================================
@@ -75,6 +72,7 @@ def analytics():
         )
 
         return
+
 
     # =================================================
     # REMOVE EMPTY DATES
@@ -92,8 +90,9 @@ def analytics():
 
         return
 
+
     # =================================================
-    # CONVERT DATA
+    # CLEAN COMPLETED COLUMN
     # =================================================
 
     df["completed"] = pd.to_numeric(
@@ -105,9 +104,16 @@ def analytics():
         subset=["completed"]
     )
 
-    df["completed"] = df[
-        "completed"
-    ].astype(int)
+    if df.empty:
+
+        st.info(
+            "No completed or missed records available."
+        )
+
+        return
+
+    df["completed"] = df["completed"].astype(int)
+
 
     # =================================================
     # STATISTICS
@@ -123,16 +129,10 @@ def analytics():
         total_records - completed_records
     )
 
-    if total_records > 0:
+    completion_rate = (
+        completed_records / total_records
+    ) * 100
 
-        completion_rate = (
-            completed_records /
-            total_records
-        ) * 100
-
-    else:
-
-        completion_rate = 0
 
     # =================================================
     # METRICS
@@ -161,6 +161,7 @@ def analytics():
             f"{completion_rate:.1f}%"
         )
 
+
     # =================================================
     # COMPLETION CHART
     # =================================================
@@ -179,6 +180,7 @@ def analytics():
             missed_records
         ]
     })
+
 
     fig, ax = plt.subplots()
 
@@ -199,6 +201,7 @@ def analytics():
 
     plt.close(fig)
 
+
     # =================================================
     # HABIT-WISE ANALYSIS
     # =================================================
@@ -215,11 +218,14 @@ def analytics():
 
     habit_data = habit_data.round(1)
 
+
     st.dataframe(
         habit_data.rename(
             "Completion %"
-        )
+        ),
+        use_container_width=True
     )
+
 
     # =================================================
     # BEST HABIT

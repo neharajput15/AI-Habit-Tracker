@@ -1,7 +1,7 @@
 import streamlit as st
-import sqlite3
 
-from database import create_tables
+from database import create_tables, get_connection
+
 from login import register, login
 from add_habit import add_habit
 from view_habits import view_habits
@@ -66,10 +66,7 @@ if not st.session_state.logged_in:
 
     if saved_user_id is not None:
 
-        conn = sqlite3.connect(
-            "habit_tracker.db"
-        )
-
+        conn = get_connection()
         cursor = conn.cursor()
 
         try:
@@ -78,7 +75,7 @@ if not st.session_state.logged_in:
                 """
                 SELECT id, name
                 FROM users
-                WHERE id = ?
+                WHERE id = %s
                 """,
                 (saved_user_id,)
             )
@@ -92,12 +89,17 @@ if not st.session_state.logged_in:
                 st.session_state.name = user[1]
                 st.session_state.page = "Home"
 
+            else:
+
+                clear_saved_user()
+
         except Exception:
 
             clear_saved_user()
 
         finally:
 
+            cursor.close()
             conn.close()
 
 
@@ -278,6 +280,10 @@ else:
             "What do you want to do? 🎯"
         )
 
+        # ---------------------------------------------
+        # ROW 1
+        # ---------------------------------------------
+
         col1, col2 = st.columns(2)
 
         with col1:
@@ -299,6 +305,10 @@ else:
 
                 st.session_state.page = "My Habits"
                 st.rerun()
+
+        # ---------------------------------------------
+        # ROW 2
+        # ---------------------------------------------
 
         col1, col2 = st.columns(2)
 
@@ -322,6 +332,10 @@ else:
                 st.session_state.page = "AI"
                 st.rerun()
 
+        # ---------------------------------------------
+        # ROW 3
+        # ---------------------------------------------
+
         col1, col2 = st.columns(2)
 
         with col1:
@@ -343,6 +357,10 @@ else:
 
                 st.session_state.page = "Check-in"
                 st.rerun()
+
+        # ---------------------------------------------
+        # LOGOUT
+        # ---------------------------------------------
 
         st.divider()
 

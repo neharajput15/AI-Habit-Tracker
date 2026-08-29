@@ -1,17 +1,12 @@
 import streamlit as st
-import sqlite3
 
-
-# ----------------------------
-# Database Connection
-# ----------------------------
-def get_connection():
-    return sqlite3.connect("habit_tracker.db")
+from database import get_connection
 
 
 # ----------------------------
 # Add Habit Function
 # ----------------------------
+
 def add_habit():
 
     st.header("➕ Add New Habit")
@@ -29,38 +24,58 @@ def add_habit():
         ]
     )
 
-    target = st.text_input("Target (Example: 2 Hours, 8 Glasses, 30 Minutes)")
+    target = st.text_input(
+        "Target (Example: 2 Hours, 8 Glasses, 30 Minutes)"
+    )
 
-    reminder_time = st.time_input("Reminder Time")
+    reminder_time = st.time_input(
+        "Reminder Time"
+    )
 
     if st.button("Save Habit"):
 
-        if habit_name == "" or target == "":
+        if not habit_name.strip() or not target.strip():
             st.warning("Please fill all fields.")
             return
 
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            INSERT INTO habits
-            (user_id, habit_name, category, target, reminder_time, status)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                st.session_state.user_id,
-                habit_name,
-                category,
-                target,
-                str(reminder_time),
-                "Pending"
+        try:
+
+            cursor.execute(
+                """
+                INSERT INTO habits
+                (user_id, habit_name, category, target, reminder_time, status)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    st.session_state.user_id,
+                    habit_name.strip(),
+                    category,
+                    target.strip(),
+                    str(reminder_time),
+                    "Pending"
+                )
             )
-        )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
 
-        st.success("✅ Habit Added Successfully!")
+            st.success(
+                "✅ Habit Added Successfully!"
+            )
 
-        st.balloons()
+            st.balloons()
+
+        except Exception as e:
+
+            conn.rollback()
+
+            st.error(
+                f"Unable to add habit: {e}"
+            )
+
+        finally:
+
+            cursor.close()
+            conn.close()

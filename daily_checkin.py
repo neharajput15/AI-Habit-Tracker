@@ -1,14 +1,7 @@
 import streamlit as st
-import sqlite3
 from datetime import date
 
-
-# =====================================================
-# DATABASE CONNECTION
-# =====================================================
-
-def get_connection():
-    return sqlite3.connect("habit_tracker.db")
+from database import get_connection
 
 
 # =====================================================
@@ -19,174 +12,231 @@ def daily_checkin():
 
     st.header("📅 Daily Habit Check-in")
 
+    user_id = st.session_state.get("user_id")
+
+    if not user_id:
+        st.warning("Please login first.")
+        return
+
     conn = get_connection()
     cursor = conn.cursor()
 
-    # =================================================
-    # GET USER'S HABITS
-    # =================================================
+    try:
 
-    cursor.execute(
-        """
-        SELECT id, habit_name
-        FROM habits
-        WHERE user_id = ?
-        ORDER BY id DESC
-        """,
-        (st.session_state.user_id,)
-    )
+        # =================================================
+        # GET USER'S HABITS
+        # =================================================
 
-    habits = cursor.fetchall()
+        cursor.execute(
+            """
+            SELECT id, habit_name
+            FROM habits
+            WHERE user_id = %s
+            ORDER BY id DESC
+            """,
+            (user_id,)
+        )
 
-    if not habits:
+        habits = cursor.fetchall()
 
-        st.info("➕ Please add a habit first.")
+        if not habits:
+            st.info("➕ Please add a habit first.")
+            return
 
-        conn.close()
-        return
+        # =================================================
+        # SELECT HABIT
+        # =================================================
 
-    # =================================================
-    # SELECT HABIT
-    # =================================================
+        selected = st.selectbox(
+            "Select Habit",
+            habits,
+            format_func=lambda x: x[1],
+            key="checkin_habit_select"
+        )
 
-    selected = st.selectbox(
-        "Select Habit",
-        habits,
-        format_func=lambda x: x[1]
-    )
+        habit_id = selected[0]
+        habit_name = selected[1]
 
-    habit_id = selected[0]
-    habit_name = selected[1]
+        today = date.today().isoformat()
 
-    today = str(date.today())
+        st.markdown(
+            f"### 📌 {habit_name}"
+        )
 
-    st.markdown(f"### 📌 {habit_name}")
+        # =================================================
+        # CHECK TODAY'S RECORD
+        # =================================================
 
-    # =================================================
-    # CHECK TODAY'S RECORD
-    # =================================================
+        cursor.execute(
+            """
+            SELECT id, completed
+            FROM progress
+            WHERE habit_id = %s
+            AND completed_date = %s
+            LIMIT 1
+            """,
+            (habit_id, today)
+        )
 
-    cursor.execute(
-        """
-        SELECT id, completed
-        FROM progress
-        WHERE habit_id = ?
-        AND completed_date = ?
-        """,
-        (habit_id, today)
-    )
+        existing = cursor.fetchone()
 
-    existing = cursor.fetchone()
+        # =================================================
+        # ALREADY CHECKED IN
+        # =================================================
 
-    # =================================================
-    # ALREADY CHECKED IN
-    # =================================================
+        if existing:
 
-    if existing:
+            if existing[1] == 1:
 
-        if existing[1] == 1:
-
-            st.success(
-                "✅ Today's habit is already marked as Completed."
-            )
-
-        else:
-
-            st.warning(
-                "❌ Today's habit is already marked as Missed."
-            )
-
-        conn.close()
-        return
-
-    # =================================================
-    # CHECK-IN BUTTONS
-    # =================================================
-
-    col1, col2 = st.columns(2)
-
-    # -------------------------------------------------
-    # COMPLETED
-    # -------------------------------------------------
-
-    with col1:
-
-        if st.button(
-            "✅ Completed",
-            use_container_width=True
-        ):
-
-            cursor.execute(
-                """
-                INSERT INTO progress
-                (habit_id, completed_date, completed)
-                VALUES (?, ?, ?)
-                """,
-                (
-                    habit_id,
-                    today,
-                    1
+                st.success(
+                    "✅ Today's habit is already marked as Completed."
                 )
-            )
 
-            cursor.execute(
-                """
-                UPDATE habits
-                SET status = 'Completed'
-                WHERE id = ?
-                """,
-                (habit_id,)
-            )
+            else:
 
-            conn.commit()
-            conn.close()
-
-            st.success(
-                "🎉 Habit marked as Completed!"
-            )
-
-            st.rerun()
-
-    # -------------------------------------------------
-    # MISSED
-    # -------------------------------------------------
-
-    with col2:
-
-        if st.button(
-            "❌ Missed",
-            use_container_width=True
-        ):
-
-            cursor.execute(
-                """
-                INSERT INTO progress
-                (habit_id, completed_date, completed)
-                VALUES (?, ?, ?)
-                """,
-                (
-                    habit_id,
-                    today,
-                    0
+                st.warning(
+                    "❌ Today's habit is already marked as Missed."
                 )
-            )
 
-            cursor.execute(
-                """
-                UPDATE habits
-                SET status = 'Pending'
-                WHERE id = ?
-                """,
-                (habit_id,)
-            )
+            return
 
-            conn.commit()
-            conn.close()
+        # =================================================
+        # CHECK-IN BUTTONS
+        # =================================================
 
-            st.warning(
-                "Habit marked as Missed ❌"
-            )
+        col1, col2 = st.columns(2)
 
-            st.rerun()
+        # =================================================
+        # COMPLETED
+        # =================================================
 
-    conn.close()
+        with col1:
+
+            if st.button(
+                "✅ Completed",
+                use_container_width=True,
+                key=f"checkin_complete_{habit_id}"
+            ):
+
+                try:
+
+                    cursor.execute(
+                        """
+                        INSERT INTO progress
+                        (
+                            habit_id,
+                            completed_date,
+                            completed
+                        )
+                        VALUES (%s, %s, %s)
+                        """,
+                        (
+                            habit_id,
+                            today,
+                            1
+                        )
+                    )
+
+                    cursor.execute(
+                        """
+                        UPDATE habits
+                        SET status = %s
+                        WHERE id = %s
+                        AND user_id = %s
+                        """,
+                        (
+                            "Completed",
+                            habit_id,
+                            user_id
+                        )
+                    )
+
+                    conn.commit()
+
+                    st.success(
+                        "🎉 Habit marked as Completed!"
+                    )
+
+                    st.rerun()
+
+                except Exception as e:
+
+                    conn.rollback()
+
+                    st.error(
+                        f"Unable to save check-in: {e}"
+                    )
+
+        # =================================================
+        # MISSED
+        # =================================================
+
+        with col2:
+
+            if st.button(
+                "❌ Missed",
+                use_container_width=True,
+                key=f"checkin_missed_{habit_id}"
+            ):
+
+                try:
+
+                    cursor.execute(
+                        """
+                        INSERT INTO progress
+                        (
+                            habit_id,
+                            completed_date,
+                            completed
+                        )
+                        VALUES (%s, %s, %s)
+                        """,
+                        (
+                            habit_id,
+                            today,
+                            0
+                        )
+                    )
+
+                    cursor.execute(
+                        """
+                        UPDATE habits
+                        SET status = %s
+                        WHERE id = %s
+                        AND user_id = %s
+                        """,
+                        (
+                            "Pending",
+                            habit_id,
+                            user_id
+                        )
+                    )
+
+                    conn.commit()
+
+                    st.warning(
+                        "Habit marked as Missed ❌"
+                    )
+
+                    st.rerun()
+
+                except Exception as e:
+
+                    conn.rollback()
+
+                    st.error(
+                        f"Unable to save check-in: {e}"
+                    )
+
+    except Exception as e:
+
+        conn.rollback()
+
+        st.error(
+            f"Unable to load daily check-in: {e}"
+        )
+
+    finally:
+
+        cursor.close()
+        conn.close()

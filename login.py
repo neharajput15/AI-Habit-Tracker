@@ -1,15 +1,7 @@
 import streamlit as st
-import sqlite3
 
+from database import get_connection
 from remember_login import save_user
-
-
-# =====================================================
-# DATABASE CONNECTION
-# =====================================================
-
-def get_connection():
-    return sqlite3.connect("habit_tracker.db")
 
 
 # =====================================================
@@ -47,27 +39,46 @@ def register():
         use_container_width=True
     ):
 
-        if not name.strip() or not email.strip() or not password:
-            st.warning("Please fill all fields.")
+        # ---------------------------------------------
+        # VALIDATION
+        # ---------------------------------------------
+
+        if (
+            not name.strip()
+            or not email.strip()
+            or not password
+        ):
+            st.warning(
+                "Please fill all fields."
+            )
             return
 
         if password != confirm_password:
-            st.error("Passwords do not match.")
+
+            st.error(
+                "Passwords do not match."
+            )
             return
 
         email = email.strip().lower()
 
-        conn = get_connection()
-        cursor = conn.cursor()
+        conn = None
+        cursor = None
 
         try:
 
-            # Check whether email already exists
+            conn = get_connection()
+            cursor = conn.cursor()
+
+            # -----------------------------------------
+            # CHECK EXISTING EMAIL
+            # -----------------------------------------
+
             cursor.execute(
                 """
                 SELECT id
                 FROM users
-                WHERE email = ?
+                WHERE email = %s
                 """,
                 (email,)
             )
@@ -75,17 +86,32 @@ def register():
             existing_user = cursor.fetchone()
 
             if existing_user:
-                st.error("Email already registered. Please login.")
+
+                st.error(
+                    "Email already registered. Please login."
+                )
+
                 return
 
-            # Create new user
+            # -----------------------------------------
+            # CREATE USER
+            # -----------------------------------------
+
             cursor.execute(
                 """
                 INSERT INTO users
-                (name, email, password)
-                VALUES (?, ?, ?)
+                (
+                    name,
+                    email,
+                    password
+                )
+                VALUES (%s, %s, %s)
                 """,
-                (name.strip(), email, password)
+                (
+                    name.strip(),
+                    email,
+                    password
+                )
             )
 
             conn.commit()
@@ -100,13 +126,20 @@ def register():
 
         except Exception as e:
 
+            if conn:
+                conn.rollback()
+
             st.error(
                 f"Registration error: {e}"
             )
 
         finally:
 
-            conn.close()
+            if cursor:
+                cursor.close()
+
+            if conn:
+                conn.close()
 
 
 # =====================================================
@@ -133,27 +166,43 @@ def login():
         use_container_width=True
     ):
 
+        # ---------------------------------------------
+        # VALIDATION
+        # ---------------------------------------------
+
         if not email.strip() or not password:
+
             st.warning(
                 "Please enter email and password."
             )
+
             return
 
         email = email.strip().lower()
 
-        conn = get_connection()
-        cursor = conn.cursor()
+        conn = None
+        cursor = None
 
         try:
+
+            conn = get_connection()
+            cursor = conn.cursor()
+
+            # -----------------------------------------
+            # CHECK USER
+            # -----------------------------------------
 
             cursor.execute(
                 """
                 SELECT id, name
                 FROM users
-                WHERE email = ?
-                AND password = ?
+                WHERE email = %s
+                AND password = %s
                 """,
-                (email, password)
+                (
+                    email,
+                    password
+                )
             )
 
             user = cursor.fetchone()
@@ -164,17 +213,26 @@ def login():
                 f"Login error: {e}"
             )
 
-            conn.close()
             return
 
-        conn.close()
+        finally:
+
+            if cursor:
+                cursor.close()
+
+            if conn:
+                conn.close()
+
+        # ---------------------------------------------
+        # LOGIN SUCCESS
+        # ---------------------------------------------
 
         if user:
 
             user_id = user[0]
             name = user[1]
 
-            # Save login
+            # Save user for auto-login
             save_user(user_id)
 
             # Streamlit session
@@ -188,6 +246,10 @@ def login():
             )
 
             st.rerun()
+
+        # ---------------------------------------------
+        # LOGIN FAILED
+        # ---------------------------------------------
 
         else:
 

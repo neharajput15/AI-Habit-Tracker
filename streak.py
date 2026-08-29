@@ -1,44 +1,63 @@
-import sqlite3
-from datetime import date, timedelta
 import streamlit as st
+from datetime import date, timedelta
 
+from database import get_connection
+
+
+# =====================================================
+# GET CURRENT STREAK
+# =====================================================
 
 def get_current_streak(habit_id):
 
-    conn = sqlite3.connect("habit_tracker.db")
+    conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT date
-        FROM progress
-        WHERE habit_id = ?
-        AND completed = 1
-        ORDER BY date DESC
-        """,
-        (habit_id,)
-    )
+    try:
 
-    records = cursor.fetchall()
+        cursor.execute(
+            """
+            SELECT completed_date
+            FROM progress
+            WHERE habit_id = %s
+            AND completed = 1
+            ORDER BY completed_date DESC
+            """,
+            (habit_id,)
+        )
 
-    conn.close()
+        records = cursor.fetchall()
+
+    finally:
+
+        cursor.close()
+        conn.close()
 
     if not records:
         return 0
 
-    completed_dates = {
-        date.fromisoformat(row[0])
-        for row in records
-    }
+    completed_dates = set()
+
+    for row in records:
+
+        try:
+            completed_dates.add(
+                date.fromisoformat(str(row[0]))
+            )
+        except ValueError:
+            continue
+
+    if not completed_dates:
+        return 0
 
     today = date.today()
 
     # If today is not completed,
     # start checking from yesterday.
-    if today not in completed_dates:
-        current_day = today - timedelta(days=1)
-    else:
+    if today in completed_dates:
         current_day = today
+    else:
+        current_day = today - timedelta(days=1)
 
     streak = 0
 
@@ -51,25 +70,43 @@ def get_current_streak(habit_id):
     return streak
 
 
+# =====================================================
+# SHOW STREAKS
+# =====================================================
+
 def show_streaks():
 
     st.subheader("🔥 Habit Streaks")
 
-    conn = sqlite3.connect("habit_tracker.db")
+    user_id = st.session_state.get("user_id")
+
+    if not user_id:
+
+        st.warning("Please login first.")
+
+        return
+
+    conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT id, habit_name
-        FROM habits
-        WHERE user_id = ?
-        """,
-        (st.session_state.user_id,)
-    )
+    try:
 
-    habits = cursor.fetchall()
+        cursor.execute(
+            """
+            SELECT id, habit_name
+            FROM habits
+            WHERE user_id = %s
+            ORDER BY id DESC
+            """,
+            (user_id,)
+        )
 
-    conn.close()
+        habits = cursor.fetchall()
+
+    finally:
+
+        cursor.close()
+        conn.close()
 
     if not habits:
 
@@ -79,9 +116,7 @@ def show_streaks():
 
     for habit_id, habit_name in habits:
 
-        streak = get_current_streak(
-            habit_id
-        )
+        streak = get_current_streak(habit_id)
 
         st.write(
             f"### 📌 {habit_name}"

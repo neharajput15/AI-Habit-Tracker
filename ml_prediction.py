@@ -1,14 +1,7 @@
-import sqlite3
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
-
-# =====================================================
-# DATABASE CONNECTION
-# =====================================================
-
-def get_connection():
-    return sqlite3.connect("habit_tracker.db")
+from database import get_connection
 
 
 # =====================================================
@@ -19,22 +12,26 @@ def get_habit_history(habit_id):
 
     conn = get_connection()
 
-    query = """
-    SELECT
-        completed_date,
-        completed
-    FROM progress
-    WHERE habit_id = ?
-    ORDER BY completed_date ASC
-    """
+    try:
 
-    df = pd.read_sql_query(
-        query,
-        conn,
-        params=(habit_id,)
-    )
+        query = """
+        SELECT
+            completed_date,
+            completed
+        FROM progress
+        WHERE habit_id = %s
+        ORDER BY completed_date ASC
+        """
 
-    conn.close()
+        df = pd.read_sql_query(
+            query,
+            conn,
+            params=(habit_id,)
+        )
+
+    finally:
+
+        conn.close()
 
     return df
 
@@ -50,8 +47,7 @@ def get_last_five_days(habit_id):
     if df.empty:
         return []
 
-    # Keep the latest 5 records
-    df = df.tail(5)
+    df = df.tail(5).copy()
 
     result = []
 
@@ -59,14 +55,11 @@ def get_last_five_days(habit_id):
 
         completed = int(row["completed"])
 
-        if completed == 1:
-            symbol = "✅"
-        else:
-            symbol = "❌"
+        symbol = "✅" if completed == 1 else "❌"
 
         result.append(
             (
-                row["completed_date"],
+                str(row["completed_date"]),
                 symbol
             )
         )
@@ -85,18 +78,26 @@ def get_recent_consistency(habit_id):
     if df.empty:
         return 0
 
-    # Use latest 5 records
-    recent = df.tail(5)
+    recent = df.tail(5).copy()
+
+    recent["completed"] = pd.to_numeric(
+        recent["completed"],
+        errors="coerce"
+    )
+
+    recent = recent.dropna(
+        subset=["completed"]
+    )
+
+    if recent.empty:
+        return 0
 
     consistency = (
         recent["completed"].sum()
         / len(recent)
     ) * 100
 
-    return round(
-        consistency,
-        2
-    )
+    return round(consistency, 2)
 
 
 # =====================================================
@@ -107,15 +108,8 @@ def predict_habit_completion(habit_id):
 
     df = get_habit_history(habit_id)
 
-    # =================================================
-    # NO DATA
-    # =================================================
-
     if df.empty:
-
-        return None, (
-            "No habit history found."
-        )
+        return None, "No habit history found."
 
     # =================================================
     # CLEAN DATA
@@ -126,7 +120,7 @@ def predict_habit_completion(habit_id):
             "completed_date",
             "completed"
         ]
-    )
+    ).copy()
 
     df["completed"] = pd.to_numeric(
         df["completed"],
@@ -135,7 +129,7 @@ def predict_habit_completion(habit_id):
 
     df = df.dropna(
         subset=["completed"]
-    )
+    ).copy()
 
     df["completed"] = df[
         "completed"
@@ -195,21 +189,16 @@ def predict_habit_completion(habit_id):
     )
 
     # =================================================
-    # REMOVE FIRST ROW
+    # TRAINING DATA
     # =================================================
 
     training_df = df.iloc[1:].copy()
 
-    # Need enough rows after feature creation
     if len(training_df) < 4:
 
         return None, (
             "Not enough history for ML prediction."
         )
-
-    # =================================================
-    # FEATURES
-    # =================================================
 
     X = training_df[
         [
@@ -219,12 +208,10 @@ def predict_habit_completion(habit_id):
         ]
     ]
 
-    y = training_df[
-        "completed"
-    ]
+    y = training_df["completed"]
 
     # =================================================
-    # CHECK BOTH CLASSES AGAIN
+    # CHECK BOTH CLASSES
     # =================================================
 
     if y.nunique() < 2:
@@ -235,24 +222,17 @@ def predict_habit_completion(habit_id):
         )
 
     # =================================================
-    # CREATE MODEL
+    # CREATE AND TRAIN MODEL
     # =================================================
 
     model = LogisticRegression(
         max_iter=1000
     )
 
-    # =================================================
-    # TRAIN MODEL
-    # =================================================
-
-    model.fit(
-        X,
-        y
-    )
+    model.fit(X, y)
 
     # =================================================
-    # PREPARE NEXT-DAY DATA
+    # PREPARE NEXT DAY
     # =================================================
 
     recent_rate = (
@@ -272,7 +252,7 @@ def predict_habit_completion(habit_id):
     ]]
 
     # =================================================
-    # PREDICT PROBABILITY
+    # PREDICT
     # =================================================
 
     probabilities = model.predict_proba(
@@ -283,20 +263,13 @@ def predict_habit_completion(habit_id):
         model.classes_
     )
 
-    # =================================================
-    # GET COMPLETION PROBABILITY
-    # =================================================
-
     if 1 in classes:
 
-        completed_index = classes.index(
-            1
-        )
+        completed_index = classes.index(1)
 
         prediction = (
-            probabilities[
-                completed_index
-            ] * 100
+            probabilities[completed_index]
+            * 100
         )
 
     else:
@@ -304,7 +277,7 @@ def predict_habit_completion(habit_id):
         prediction = 0
 
     # =================================================
-    # LIMIT RESULT
+    # LIMIT 0–100
     # =================================================
 
     prediction = max(

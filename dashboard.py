@@ -1,20 +1,13 @@
 import streamlit as st
-import sqlite3
 import matplotlib.pyplot as plt
+
+from database import get_connection
 
 from ml_prediction import (
     predict_habit_completion,
     get_last_five_days,
     get_recent_consistency
 )
-
-
-# =====================================================
-# DATABASE CONNECTION
-# =====================================================
-
-def get_connection():
-    return sqlite3.connect("habit_tracker.db")
 
 
 # =====================================================
@@ -25,7 +18,13 @@ def dashboard():
 
     st.header("📊 Dashboard")
 
-    user_id = st.session_state.user_id
+    user_id = st.session_state.get("user_id")
+
+    if not user_id:
+
+        st.warning("Please login first.")
+
+        return
 
     # =================================================
     # BASIC HABIT STATISTICS
@@ -34,34 +33,56 @@ def dashboard():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Total habits
-    cursor.execute(
-        """
-        SELECT COUNT(*)
-        FROM habits
-        WHERE user_id = ?
-        """,
-        (user_id,)
-    )
+    try:
 
-    total = cursor.fetchone()[0]
+        # ---------------------------------------------
+        # TOTAL HABITS
+        # ---------------------------------------------
 
-    # Completed habits
-    cursor.execute(
-        """
-        SELECT COUNT(*)
-        FROM habits
-        WHERE user_id = ?
-        AND status = 'Completed'
-        """,
-        (user_id,)
-    )
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM habits
+            WHERE user_id = %s
+            """,
+            (user_id,)
+        )
 
-    completed = cursor.fetchone()[0]
+        total = cursor.fetchone()[0]
+
+        # ---------------------------------------------
+        # COMPLETED HABITS
+        # ---------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM habits
+            WHERE user_id = %s
+            AND status = %s
+            """,
+            (
+                user_id,
+                "Completed"
+            )
+        )
+
+        completed = cursor.fetchone()[0]
+
+    except Exception as e:
+
+        st.error(
+            f"Unable to load dashboard: {e}"
+        )
+
+        return
+
+    finally:
+
+        cursor.close()
+        conn.close()
 
     pending = total - completed
-
-    conn.close()
 
     # =================================================
     # SUMMARY CARDS
@@ -70,18 +91,21 @@ def dashboard():
     col1, col2, col3 = st.columns(3)
 
     with col1:
+
         st.metric(
             "📋 Total Habits",
             total
         )
 
     with col2:
+
         st.metric(
             "✅ Completed",
             completed
         )
 
     with col3:
+
         st.metric(
             "⏳ Pending",
             pending
@@ -106,7 +130,13 @@ def dashboard():
     )
 
     st.progress(
-        int(percentage)
+        min(
+            max(
+                int(percentage),
+                0
+            ),
+            100
+        )
     )
 
     st.write(
@@ -169,19 +199,32 @@ def dashboard():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT id, habit_name
-        FROM habits
-        WHERE user_id = ?
-        ORDER BY id DESC
-        """,
-        (user_id,)
-    )
+    try:
 
-    habits = cursor.fetchall()
+        cursor.execute(
+            """
+            SELECT id, habit_name
+            FROM habits
+            WHERE user_id = %s
+            ORDER BY id DESC
+            """,
+            (user_id,)
+        )
 
-    conn.close()
+        habits = cursor.fetchall()
+
+    except Exception as e:
+
+        st.error(
+            f"Unable to load habits: {e}"
+        )
+
+        return
+
+    finally:
+
+        cursor.close()
+        conn.close()
 
     # =================================================
     # NO HABITS
@@ -202,7 +245,8 @@ def dashboard():
     selected_habit = st.selectbox(
         "Select a habit",
         habits,
-        format_func=lambda x: x[1]
+        format_func=lambda x: x[1],
+        key="dashboard_habit_select"
     )
 
     habit_id = selected_habit[0]
@@ -272,7 +316,8 @@ def dashboard():
 
     if st.button(
         "🔮 Predict Completion",
-        use_container_width=True
+        use_container_width=True,
+        key="predict_completion_button"
     ):
 
         prediction, message = (
@@ -308,7 +353,13 @@ def dashboard():
             )
 
             st.progress(
-                int(prediction)
+                min(
+                    max(
+                        int(prediction),
+                        0
+                    ),
+                    100
+                )
             )
 
             # -----------------------------------------

@@ -3,3 +3,4 @@ pandas
 scikit-learn
 matplotlib
 google-genai
+psycopg2-binary

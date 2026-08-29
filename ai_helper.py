@@ -1,8 +1,9 @@
 import streamlit as st
-import sqlite3
 
 from google import genai
 from nlp_helper import analyze_habit
+
+from database import get_connection
 
 from ml_prediction import (
     predict_habit_completion,
@@ -14,20 +15,17 @@ from ml_prediction import (
 # GEMINI CONFIGURATION
 # =====================================================
 
-# API key is stored securely in Streamlit Secrets
-API_KEY = st.secrets["GEMINI_API_KEY"]
+API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 
-client = genai.Client(
-    api_key=API_KEY
-)
+client = None
 
-
-# =====================================================
-# DATABASE CONNECTION
-# =====================================================
-
-def get_connection():
-    return sqlite3.connect("habit_tracker.db")
+if API_KEY:
+    try:
+        client = genai.Client(
+            api_key=API_KEY
+        )
+    except Exception:
+        client = None
 
 
 # =====================================================
@@ -39,21 +37,57 @@ def get_user_habits():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT id, habit_name
-        FROM habits
-        WHERE user_id = ?
-        ORDER BY id DESC
-        """,
-        (st.session_state.user_id,)
-    )
+    try:
 
-    habits = cursor.fetchall()
+        cursor.execute(
+            """
+            SELECT id, habit_name
+            FROM habits
+            WHERE user_id = %s
+            ORDER BY id DESC
+            """,
+            (st.session_state.user_id,)
+        )
 
-    conn.close()
+        habits = cursor.fetchall()
+
+    finally:
+
+        cursor.close()
+        conn.close()
 
     return habits
+
+
+# =====================================================
+# GENERATE GEMINI RESPONSE
+# =====================================================
+
+def generate_ai_response(prompt):
+
+    if client is None:
+
+        return None, (
+            "Gemini AI is not configured. "
+            "Please add GEMINI_API_KEY in Streamlit Secrets."
+        )
+
+    try:
+
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt
+        )
+
+        if response and response.text:
+
+            return response.text, None
+
+        return None, "Gemini did not return a response."
+
+    except Exception as e:
+
+        return None, str(e)
 
 
 # =====================================================
@@ -65,7 +99,7 @@ def ai_assistant():
     st.header("🤖 AI Habit Assistant")
 
     # =================================================
-    # ML-BASED HABIT COACH
+    # SMART HABIT COACH
     # =================================================
 
     st.subheader("📊 Smart Habit Coach")
@@ -85,7 +119,7 @@ def ai_assistant():
         habit_name = selected_habit[1]
 
         # ---------------------------------------------
-        # GET CONSISTENCY
+        # CONSISTENCY
         # ---------------------------------------------
 
         consistency = get_recent_consistency(
@@ -93,7 +127,7 @@ def ai_assistant():
         )
 
         # ---------------------------------------------
-        # GET ML PREDICTION
+        # ML PREDICTION
         # ---------------------------------------------
 
         prediction, prediction_message = (
@@ -131,9 +165,9 @@ def ai_assistant():
                     "Not available"
                 )
 
-        # ---------------------------------------------
-        # AI RECOMMENDATION
-        # ---------------------------------------------
+        # =================================================
+        # SMART RECOMMENDATION
+        # =================================================
 
         st.write(
             "### 💡 Smart Recommendation"
@@ -171,9 +205,9 @@ def ai_assistant():
                     "and avoid skipping the habit."
                 )
 
-            # -----------------------------------------
-            # AI BUTTON
-            # -----------------------------------------
+            # =================================================
+            # PERSONALIZED AI ADVICE
+            # =================================================
 
             if st.button(
                 "✨ Generate Personalized AI Advice",
@@ -193,6 +227,7 @@ ML predicted completion likelihood:
 {prediction:.1f}%
 
 Give the user:
+
 1. One short observation about their habit.
 2. Three practical improvement tips.
 3. One simple daily goal.
@@ -202,41 +237,32 @@ Keep the answer simple and suitable for a student.
 Do not use complicated words.
 """
 
-                try:
+                with st.spinner(
+                    "🤖 AI is preparing personalized advice..."
+                ):
 
-                    with st.spinner(
-                        "🤖 AI is preparing personalized advice..."
-                    ):
+                    response_text, error = (
+                        generate_ai_response(prompt)
+                    )
 
-                        response = client.models.generate_content(
-                            model="gemini-3.6-flash",
-                            contents=prompt
-                        )
+                if response_text:
 
                     st.subheader(
                         "💡 Personalized AI Advice"
                     )
 
-                    if response.text:
+                    st.write(
+                        response_text
+                    )
 
-                        st.write(
-                            response.text
-                        )
-
-                    else:
-
-                        st.warning(
-                            "Gemini did not return a response."
-                        )
-
-                except Exception as e:
+                else:
 
                     st.error(
-                        "Unable to connect to Gemini AI."
+                        "Unable to generate AI advice."
                     )
 
                     st.caption(
-                        f"Gemini Error: {e}"
+                        error
                     )
 
     else:
@@ -246,7 +272,7 @@ Do not use complicated words.
         )
 
     # =================================================
-    # GENERATIVE AI
+    # GENERAL AI
     # =================================================
 
     st.markdown("---")
@@ -266,7 +292,8 @@ Do not use complicated words.
 
     if st.button(
         "✨ Generate AI Suggestion",
-        key="general_ai_button"
+        key="general_ai_button",
+        use_container_width=True
     ):
 
         if not user_input.strip():
@@ -294,41 +321,32 @@ Provide:
 Keep the answer simple, practical and encouraging.
 """
 
-            try:
+            with st.spinner(
+                "🤖 AI is preparing suggestions..."
+            ):
 
-                with st.spinner(
-                    "🤖 AI is preparing suggestions..."
-                ):
+                response_text, error = (
+                    generate_ai_response(prompt)
+                )
 
-                    response = client.models.generate_content(
-                        model="gemini-3.6-flash",
-                        contents=prompt
-                    )
+            if response_text:
 
                 st.subheader(
                     "💡 AI Suggestions"
                 )
 
-                if response.text:
+                st.write(
+                    response_text
+                )
 
-                    st.write(
-                        response.text
-                    )
-
-                else:
-
-                    st.warning(
-                        "Gemini did not return any response."
-                    )
-
-            except Exception as e:
+            else:
 
                 st.error(
-                    "Unable to connect to Gemini AI."
+                    "Unable to generate AI suggestions."
                 )
 
                 st.caption(
-                    f"Gemini Error: {e}"
+                    error
                 )
 
     # =================================================
@@ -352,7 +370,8 @@ Keep the answer simple, practical and encouraging.
 
     if st.button(
         "🧠 Analyze Habit",
-        key="nlp_button"
+        key="nlp_button",
+        use_container_width=True
     ):
 
         if not text.strip():

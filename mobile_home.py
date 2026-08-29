@@ -1,17 +1,7 @@
 import streamlit as st
-import sqlite3
 from datetime import date
 
-
-# =====================================================
-# DATABASE
-# =====================================================
-
-def get_connection():
-
-    return sqlite3.connect(
-        "habit_tracker.db"
-    )
+from database import get_connection
 
 
 # =====================================================
@@ -37,58 +27,67 @@ def mobile_home():
 
         return
 
-
     today = str(date.today())
-
 
     # =================================================
     # GET HABITS
     # =================================================
 
     conn = get_connection()
-
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT
-            id,
-            habit_name,
-            category,
-            target
-        FROM habits
-        WHERE user_id = ?
-        """,
-        (user_id,)
-    )
+    try:
 
-    habits = cursor.fetchall()
-
-
-    # =================================================
-    # COMPLETED TODAY
-    # =================================================
-
-    cursor.execute(
-        """
-        SELECT COUNT(*)
-        FROM progress p
-        JOIN habits h
-        ON p.habit_id = h.id
-        WHERE h.user_id = ?
-        AND p.date = ?
-        AND p.completed = 1
-        """,
-        (
-            user_id,
-            today
+        cursor.execute(
+            """
+            SELECT
+                id,
+                habit_name,
+                category,
+                target
+            FROM habits
+            WHERE user_id = %s
+            ORDER BY id DESC
+            """,
+            (user_id,)
         )
-    )
 
-    completed_today = cursor.fetchone()[0]
+        habits = cursor.fetchall()
 
-    conn.close()
+        # =================================================
+        # COMPLETED TODAY
+        # =================================================
 
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM progress p
+            JOIN habits h
+                ON p.habit_id = h.id
+            WHERE h.user_id = %s
+            AND p.completed_date = %s
+            AND p.completed = 1
+            """,
+            (
+                user_id,
+                today
+            )
+        )
+
+        completed_today = cursor.fetchone()[0]
+
+    except Exception as e:
+
+        st.error(
+            f"Unable to load home data: {e}"
+        )
+
+        return
+
+    finally:
+
+        cursor.close()
+        conn.close()
 
     # =================================================
     # HEADER
@@ -106,16 +105,13 @@ def mobile_home():
         "Let's build better habits today. 🌱"
     )
 
-
     # =================================================
     # STATISTICS
     # =================================================
 
     total_habits = len(habits)
 
-
     col1, col2 = st.columns(2)
-
 
     with col1:
 
@@ -124,7 +120,6 @@ def mobile_home():
             total_habits
         )
 
-
     with col2:
 
         st.metric(
@@ -132,9 +127,7 @@ def mobile_home():
             f"{completed_today}/{total_habits}"
         )
 
-
     st.divider()
-
 
     # =================================================
     # TODAY'S HABITS
@@ -143,7 +136,6 @@ def mobile_home():
     st.subheader(
         "Today's Habits 🎯"
     )
-
 
     if not habits:
 
@@ -157,7 +149,6 @@ def mobile_home():
 
         return
 
-
     # =================================================
     # HABIT CARDS
     # =================================================
@@ -165,45 +156,43 @@ def mobile_home():
     for habit in habits:
 
         habit_id = habit[0]
-
         habit_name = habit[1]
-
         category = habit[2]
-
         target = habit[3]
 
-
         # ---------------------------------------------
-        # CHECK PROGRESS
+        # CHECK TODAY'S PROGRESS
         # ---------------------------------------------
 
         conn = get_connection()
-
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            SELECT completed
-            FROM progress
-            WHERE habit_id = ?
-            AND date = ?
-            """,
-            (
-                habit_id,
-                today
+        try:
+
+            cursor.execute(
+                """
+                SELECT completed
+                FROM progress
+                WHERE habit_id = %s
+                AND completed_date = %s
+                """,
+                (
+                    habit_id,
+                    today
+                )
             )
-        )
 
-        progress = cursor.fetchone()
+            progress = cursor.fetchone()
 
-        conn.close()
+        finally:
 
+            cursor.close()
+            conn.close()
 
         completed = (
             progress is not None
-            and progress[0] == 1
+            and int(progress[0]) == 1
         )
-
 
         # =================================================
         # CARD
@@ -223,11 +212,13 @@ def mobile_home():
                     f"⭕ {habit_name}"
                 )
 
-
             st.caption(
                 f"📂 {category}  •  🎯 {target}"
             )
 
+            # ---------------------------------------------
+            # COMPLETED
+            # ---------------------------------------------
 
             if completed:
 
@@ -239,13 +230,15 @@ def mobile_home():
                     "🔥 Great job! Keep your streak going!"
                 )
 
+            # ---------------------------------------------
+            # NOT COMPLETED
+            # ---------------------------------------------
 
             else:
 
                 st.warning(
                     "Not completed today"
                 )
-
 
                 if st.button(
                     "✅ Complete",
@@ -254,87 +247,108 @@ def mobile_home():
                 ):
 
                     conn = get_connection()
-
                     cursor = conn.cursor()
 
+                    try:
 
-                    # ---------------------------------
-                    # CHECK EXISTING RECORD
-                    # ---------------------------------
-
-                    cursor.execute(
-                        """
-                        SELECT id
-                        FROM progress
-                        WHERE habit_id = ?
-                        AND date = ?
-                        """,
-                        (
-                            habit_id,
-                            today
-                        )
-                    )
-
-                    existing = cursor.fetchone()
-
-
-                    # ---------------------------------
-                    # UPDATE
-                    # ---------------------------------
-
-                    if existing:
+                        # ---------------------------------
+                        # CHECK EXISTING RECORD
+                        # ---------------------------------
 
                         cursor.execute(
                             """
-                            UPDATE progress
-                            SET completed = 1,
-                                completed_date = ?
-                            WHERE id = ?
-                            """,
-                            (
-                                today,
-                                existing[0]
-                            )
-                        )
-
-
-                    # ---------------------------------
-                    # INSERT
-                    # ---------------------------------
-
-                    else:
-
-                        cursor.execute(
-                            """
-                            INSERT INTO progress
-                            (
-                                habit_id,
-                                date,
-                                completed,
-                                completed_date
-                            )
-                            VALUES (?, ?, ?, ?)
+                            SELECT id
+                            FROM progress
+                            WHERE habit_id = %s
+                            AND completed_date = %s
                             """,
                             (
                                 habit_id,
-                                today,
-                                1,
                                 today
                             )
                         )
 
+                        existing = cursor.fetchone()
 
-                    conn.commit()
+                        # ---------------------------------
+                        # UPDATE EXISTING RECORD
+                        # ---------------------------------
 
-                    conn.close()
+                        if existing:
 
+                            cursor.execute(
+                                """
+                                UPDATE progress
+                                SET completed = %s
+                                WHERE id = %s
+                                """,
+                                (
+                                    1,
+                                    existing[0]
+                                )
+                            )
 
-                    st.success(
-                        f"{habit_name} completed! 🎉"
-                    )
+                        # ---------------------------------
+                        # INSERT NEW RECORD
+                        # ---------------------------------
 
-                    st.rerun()
+                        else:
 
+                            cursor.execute(
+                                """
+                                INSERT INTO progress
+                                (
+                                    habit_id,
+                                    completed_date,
+                                    completed
+                                )
+                                VALUES (%s, %s, %s)
+                                """,
+                                (
+                                    habit_id,
+                                    today,
+                                    1
+                                )
+                            )
+
+                        # ---------------------------------
+                        # UPDATE HABIT STATUS
+                        # ---------------------------------
+
+                        cursor.execute(
+                            """
+                            UPDATE habits
+                            SET status = %s
+                            WHERE id = %s
+                            AND user_id = %s
+                            """,
+                            (
+                                "Completed",
+                                habit_id,
+                                user_id
+                            )
+                        )
+
+                        conn.commit()
+
+                        st.success(
+                            f"{habit_name} completed! 🎉"
+                        )
+
+                        st.rerun()
+
+                    except Exception as e:
+
+                        conn.rollback()
+
+                        st.error(
+                            f"Unable to complete habit: {e}"
+                        )
+
+                    finally:
+
+                        cursor.close()
+                        conn.close()
 
     # =================================================
     # TODAY'S PROGRESS
@@ -345,7 +359,6 @@ def mobile_home():
     st.subheader(
         "📈 Today's Progress"
     )
-
 
     if total_habits > 0:
 
@@ -358,18 +371,20 @@ def mobile_home():
 
         percentage = 0
 
+    percentage = min(
+        max(percentage, 0.0),
+        1.0
+    )
 
     st.progress(
-    min(max(percentage, 0.0), 1.0)
-)
-
+        percentage
+    )
 
     st.write(
         f"**{completed_today} of "
         f"{total_habits} habits completed "
         f"({percentage * 100:.0f}%)**"
     )
-
 
     # =================================================
     # MOTIVATION
