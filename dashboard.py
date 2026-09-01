@@ -1,516 +1,495 @@
 import streamlit as st
-import matplotlib.pyplot as plt
+from datetime import date
 
 from database import get_connection
-
 from ml_prediction import (
     predict_habit_completion,
     get_last_five_days,
-    get_recent_consistency
+    get_recent_consistency,
 )
 
 
 # =====================================================
-# DASHBOARD
+# MODERN DASHBOARD
 # =====================================================
 
-def dashboard():
+def _safe_text(value, default="None"):
+    if value is None or str(value).strip() == "":
+        return default
+    return str(value)
 
+
+def _get_habits(user_id):
+    """Load habits without depending on a frequency column."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            """
+            SELECT id, habit_name, category, target, status
+            FROM habits
+            WHERE user_id = %s
+            ORDER BY id DESC
+            """,
+            (user_id,),
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def _today_counts(user_id, habit_ids):
+    """Return completed-today count for the user's habits."""
+    if not habit_ids:
+        return 0
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM progress p
+            JOIN habits h ON h.id = p.habit_id
+            WHERE h.user_id = %s
+              AND p.completed_date = %s
+              AND p.completed = 1
+            """,
+            (user_id, date.today().isoformat()),
+        )
+        return int(cursor.fetchone()[0] or 0)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def _inject_css():
+    st.markdown(
+        """
+        <style>
+        /* ---------- Page ---------- */
+        .block-container {
+            max-width: 1180px;
+            padding-top: 2rem;
+            padding-bottom: 3rem;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #6d42d8 0%, #8c5cf0 55%, #a679ff 100%);
+            border-radius: 28px;
+            padding: 28px 30px;
+            color: white;
+            margin-bottom: 22px;
+            box-shadow: 0 14px 35px rgba(112, 71, 214, 0.20);
+        }
+
+        .hero h1 {
+            color: white !important;
+            font-size: 30px !important;
+            margin: 0 0 5px 0 !important;
+        }
+
+        .hero p {
+            color: rgba(255,255,255,.88) !important;
+            margin: 0 !important;
+            font-size: 15px;
+        }
+
+        /* ---------- Stat cards ---------- */
+        .stat-card {
+            background: white;
+            border: 1px solid #eee8fb;
+            border-radius: 22px;
+            padding: 20px;
+            min-height: 150px;
+            box-shadow: 0 8px 25px rgba(60, 35, 110, .07);
+        }
+
+        .dark .stat-card {
+            background: #211b2c;
+            border-color: #3b304d;
+        }
+
+        .stat-icon {
+            font-size: 25px;
+            margin-bottom: 8px;
+        }
+
+        .stat-title {
+            color: #777080;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            color: #241b2f;
+            font-size: 30px;
+            font-weight: 800;
+            margin-top: 4px;
+        }
+
+        /* ---------- Section ---------- */
+        .section-title {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 26px 0 12px 0;
+        }
+
+        /* ---------- Progress card ---------- */
+        .progress-card {
+            background: linear-gradient(135deg, #f7f2ff, #fbf9ff);
+            border: 1px solid #e9ddff;
+            border-radius: 24px;
+            padding: 25px;
+            margin: 8px 0 20px 0;
+        }
+
+        .progress-number {
+            color: #7444d8;
+            font-size: 38px;
+            font-weight: 850;
+        }
+
+        .progress-text {
+            color: #766c80;
+            font-size: 14px;
+            margin-top: -5px;
+        }
+
+        .message-card {
+            background: white;
+            border: 1px solid #eee8f7;
+            border-radius: 18px;
+            padding: 15px 18px;
+            margin-top: 12px;
+            color: #5c5264;
+        }
+
+        /* ---------- Habit cards ---------- */
+        .habit-card {
+            background: white;
+            border: 1px solid #eee8f7;
+            border-radius: 22px;
+            padding: 19px 20px;
+            margin-bottom: 13px;
+            box-shadow: 0 7px 20px rgba(60, 35, 110, .05);
+        }
+
+        .habit-name {
+            color: #2a2231;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .habit-info {
+            color: #8a7f91;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .habit-target {
+            color: #665b70;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .status-done {
+            display: inline-block;
+            background: #e8f8ee;
+            color: #22834a;
+            padding: 6px 11px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-pending {
+            display: inline-block;
+            background: #fff4df;
+            color: #b36b00;
+            padding: 6px 11px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* ---------- Buttons ---------- */
+        .stButton > button {
+            border-radius: 14px !important;
+            min-height: 45px !important;
+            font-weight: 700 !important;
+        }
+
+        /* ---------- Prediction ---------- */
+        .prediction-card {
+            background: linear-gradient(135deg, #f8f4ff, #ffffff);
+            border: 1px solid #e9ddff;
+            border-radius: 24px;
+            padding: 24px;
+        }
+
+        /* ---------- Footer ---------- */
+        .footer {
+            text-align: center;
+            color: #918797;
+            font-size: 13px;
+            padding: 28px 0 8px 0;
+        }
+
+        @media (max-width: 700px) {
+            .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            .hero {
+                padding: 22px;
+                border-radius: 22px;
+            }
+            .hero h1 {
+                font-size: 25px !important;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def dashboard():
     user_id = st.session_state.get("user_id")
 
     if not user_id:
         st.warning("Please login first.")
         return
 
-    # =================================================
-    # GET USER HABITS
-    # =================================================
+    _inject_css()
 
-    conn = get_connection()
-    cursor = conn.cursor()
-
+    # =================================================
+    # LOAD DATA
+    # =================================================
     try:
-
-        cursor.execute(
-            """
-            SELECT
-                id,
-                habit_name,
-                category,
-                target,
-                frequency,
-                status
-            FROM habits
-            WHERE user_id = %s
-            ORDER BY id DESC
-            """,
-            (user_id,)
-        )
-
-        habits = cursor.fetchall()
-
+        habits = _get_habits(user_id)
     except Exception as e:
-
         st.error(f"Unable to load dashboard: {e}")
         return
 
-    finally:
+    total_habits = len(habits)
+    habit_ids = [h[0] for h in habits]
 
-        cursor.close()
-        conn.close()
-
-
-    # =================================================
-    # HEADER
-    # =================================================
-
-    st.title("📊 Progress Dashboard")
-
-    st.caption(
-        "Track your habits, monitor consistency and improve every day."
-    )
-
-    st.divider()
-
-
-    # =================================================
-    # NO HABITS
-    # =================================================
-
-    if not habits:
-
-        st.info(
-            "🌱 No habits added yet. Add your first habit to start tracking."
-        )
-
+    try:
+        completed_today = _today_counts(user_id, habit_ids)
+    except Exception as e:
+        st.error(f"Unable to load today's progress: {e}")
         return
 
-
-    # =================================================
-    # BASIC STATISTICS
-    # =================================================
-
-    total_habits = len(habits)
-
-    completed_habits = sum(
-        1
-        for habit in habits
-        if habit[5] == "Completed"
+    pending_today = max(total_habits - completed_today, 0)
+    today_percentage = (
+        completed_today / total_habits if total_habits else 0
     )
 
-    pending_habits = max(
-        total_habits - completed_habits,
-        0
+    # =================================================
+    # HERO
+    # =================================================
+    name = _safe_text(st.session_state.get("name"), "there")
+
+    st.markdown(
+        f"""
+        <div class="hero">
+            <h1>Welcome back, {name} 👋</h1>
+            <p>Stay consistent and make progress every day. • {date.today().strftime("%A, %d %B %Y")}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    percentage = (
-        completed_habits / total_habits
-        if total_habits > 0
-        else 0
-    )
-
-
     # =================================================
-    # SUMMARY CARDS
+    # TODAY'S OVERVIEW
     # =================================================
+    st.markdown('<div class="section-title">Today\'s Overview</div>', unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
 
-    with col1:
-
-        st.metric(
-            "📋 Total Habits",
-            total_habits
-        )
-
-    with col2:
-
-        st.metric(
-            "✅ Completed",
-            completed_habits
-        )
-
-    with col3:
-
-        st.metric(
-            "⏳ Pending",
-            pending_habits
-        )
-
-
-    # =================================================
-    # TODAY'S OVERALL PROGRESS
-    # =================================================
-
-    st.divider()
-
-    st.subheader("📈 Overall Progress")
-
-    st.progress(
-        min(
-            max(
-                percentage,
-                0.0
-            ),
-            1.0
-        )
-    )
-
-    st.write(
-        f"**{completed_habits} of {total_habits} habits completed "
-        f"({percentage * 100:.0f}%)**"
-    )
-
-
-    # =================================================
-    # COMPLETION CHART
-    # =================================================
-
-    st.divider()
-
-    st.subheader("📊 Completion Overview")
-
-    labels = [
-        "Completed",
-        "Pending"
+    cards = [
+        ("📋", "Total Habits", total_habits),
+        ("✅", "Completed Today", completed_today),
+        ("⏳", "Pending", pending_today),
+        ("📈", "Today's Progress", f"{today_percentage * 100:.0f}%"),
     ]
 
-    values = [
-        completed_habits,
-        pending_habits
-    ]
+    for col, (icon, title, value) in zip((c1, c2, c3, c4), cards):
+        with col:
+            st.markdown(
+                f"""
+                <div class="stat-card">
+                    <div class="stat-icon">{icon}</div>
+                    <div class="stat-title">{title}</div>
+                    <div class="stat-value">{value}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-    if sum(values) > 0:
+    # =================================================
+    # TODAY'S PROGRESS
+    # =================================================
+    st.markdown('<div class="section-title">Today\'s Progress</div>', unsafe_allow_html=True)
 
-        fig, ax = plt.subplots(
-            figsize=(5, 3.5)
-        )
+    st.markdown(
+        f"""
+        <div class="progress-card">
+            <div class="progress-number">{today_percentage * 100:.0f}%</div>
+            <div class="progress-text">
+                {completed_today} of {total_habits} habits completed today
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-        ax.pie(
-            values,
-            labels=labels,
-            autopct="%1.1f%%",
-            startangle=90
-        )
+    st.progress(float(today_percentage))
 
-        ax.set_title(
-            "Habit Completion"
-        )
-
-        st.pyplot(
-            fig,
-            use_container_width=False
-        )
-
-        plt.close(fig)
-
+    if total_habits == 0:
+        st.info("Add your first habit to start tracking your progress.")
+    elif today_percentage == 1:
+        st.success("🎉 Excellent! You completed all your habits today.")
+    elif today_percentage >= 0.5:
+        st.info("💪 Good progress! Keep going and complete the remaining habits.")
+    else:
+        st.warning("🌱 Start small. Complete one habit now and build your momentum.")
 
     # =================================================
     # MY HABITS
     # =================================================
+    st.markdown('<div class="section-title">My Habits</div>', unsafe_allow_html=True)
 
-    st.divider()
+    if not habits:
+        st.info("No habits added yet. Use **Add Habit** to create your first habit.")
+    else:
+        for habit_id, habit_name, category, target, status in habits:
+            try:
+                consistency = get_recent_consistency(habit_id)
+            except Exception:
+                consistency = 0
 
-    st.subheader("🎯 My Habits")
+            done = str(status).lower() == "completed"
 
-    for habit in habits:
-
-        habit_id = habit[0]
-        habit_name = habit[1]
-        category = habit[2]
-        target = habit[3]
-        frequency = habit[4]
-        status = habit[5]
-
-
-        # =================================================
-        # RECENT CONSISTENCY
-        # =================================================
-
-        consistency = get_recent_consistency(
-            habit_id
-        )
-
-
-        # =================================================
-        # HABIT CARD
-        # =================================================
-
-        with st.container(border=True):
-
-            col1, col2 = st.columns(
-                [3, 1]
+            status_html = (
+                '<span class="status-done">✓ Completed</span>'
+                if done
+                else '<span class="status-pending">Pending</span>'
             )
 
-            with col1:
-
-                st.subheader(
-                    f"📌 {habit_name}"
-                )
-
-                st.caption(
-                    f"📂 {category}  •  🔄 {frequency}"
-                )
-
-                st.write(
-                    f"🎯 Target: {target}"
-                )
-
-            with col2:
-
-                if status == "Completed":
-
-                    st.success(
-                        "Completed"
-                    )
-
-                else:
-
-                    st.warning(
-                        "Pending"
-                    )
-
-
-            # =================================================
-            # CONSISTENCY
-            # =================================================
-
-            st.write(
-                f"Consistency: **{consistency:.1f}%**"
+            st.markdown(
+                f"""
+                <div class="habit-card">
+                    <div class="habit-name">{_safe_text(habit_name)}</div>
+                    <div class="habit-info">
+                        {_safe_text(category)} &nbsp; • &nbsp; Daily
+                    </div>
+                    <div class="habit-target">
+                        Target: <b>{_safe_text(target)}</b>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
-            st.progress(
-                min(
-                    max(
-                        consistency / 100,
-                        0.0
-                    ),
-                    1.0
-                )
-            )
-
+            p1, p2 = st.columns([4, 1])
+            with p1:
+                st.caption(f"Recent consistency: {consistency:.1f}%")
+                st.progress(min(max(float(consistency) / 100, 0.0), 1.0))
+            with p2:
+                st.markdown(status_html, unsafe_allow_html=True)
 
     # =================================================
-    # ML PREDICTION
+    # AI / ML PREDICTION
     # =================================================
-
-    st.divider()
-
-    st.subheader("🤖 Smart Habit Prediction")
-
+    st.markdown('<div class="section-title">🤖 AI Habit Prediction</div>', unsafe_allow_html=True)
     st.caption(
         "Use your previous habit history to estimate your next completion likelihood."
     )
 
+    if habits:
+        selected_habit = st.selectbox(
+            "Select a habit for prediction",
+            habits,
+            format_func=lambda x: x[1],
+            key="modern_dashboard_habit_select",
+        )
 
-    # =================================================
-    # SELECT HABIT
-    # =================================================
-
-    selected_habit = st.selectbox(
-        "Select a habit",
-        habits,
-        format_func=lambda x: x[1],
-        key="dashboard_habit_select"
-    )
-
-    habit_id = selected_habit[0]
-    habit_name = selected_habit[1]
-
-
-    st.markdown(
-        f"### 📌 {habit_name}"
-    )
-
-
-    # =================================================
-    # RECENT HISTORY
-    # =================================================
-
-    last_five = get_last_five_days(
-        habit_id
-    )
-
-    if last_five:
+        habit_id = selected_habit[0]
+        habit_name = selected_habit[1]
 
         st.markdown(
-            "#### 🗓️ Recent History"
+            f"""
+            <div class="prediction-card">
+                <div class="habit-name">{_safe_text(habit_name)}</div>
+                <div class="habit-info">Recent 5-day habit history</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-        history = " ".join(
-            symbol
-            for _, symbol in last_five
-        )
+        last_five = get_last_five_days(habit_id)
 
-        st.markdown(
-            f"### {history}"
-        )
+        if last_five:
+            history = " ".join(symbol for _, symbol in last_five)
+            st.markdown(f"### {history}")
 
-        for record_date, symbol in last_five:
+            for record_date, symbol in last_five:
+                st.caption(f"{symbol} {record_date}")
 
-            st.write(
-                f"{symbol}  {record_date}"
-            )
-
-
-        # =================================================
-        # CONSISTENCY
-        # =================================================
-
-        consistency = get_recent_consistency(
-            habit_id
-        )
-
-        st.metric(
-            "📈 Recent Consistency",
-            f"{consistency:.1f}%"
-        )
-
-    else:
-
-        st.info(
-            "📝 No check-in history available yet."
-        )
-
-
-    # =================================================
-    # PREDICT BUTTON
-    # =================================================
-
-    st.divider()
-
-    if st.button(
-        "🤖 Predict Completion",
-        use_container_width=True,
-        key="predict_completion_button"
-    ):
-
-        prediction, message = (
-            predict_habit_completion(
-                habit_id
-            )
-        )
-
-
-        # =================================================
-        # NOT ENOUGH DATA
-        # =================================================
-
-        if prediction is None:
-
-            st.warning(
-                f"⚠️ {message}"
-            )
-
-            st.info(
-                "Complete or miss this habit for at least "
-                "5 days to generate an ML prediction."
-            )
-
-
-        # =================================================
-        # PREDICTION AVAILABLE
-        # =================================================
-
+            consistency = get_recent_consistency(habit_id)
+            st.metric("Recent Consistency", f"{consistency:.1f}%")
         else:
+            st.info("No habit history available yet.")
 
-            st.markdown(
-                "#### 🎯 Completion Likelihood"
-            )
+        if st.button(
+            "Predict Completion",
+            use_container_width=True,
+            key="modern_predict_completion",
+        ):
+            prediction, message = predict_habit_completion(habit_id)
 
-            col1, col2 = st.columns(2)
-
-            with col1:
-
-                st.metric(
-                    "ML Prediction",
-                    f"{prediction:.1f}%"
+            if prediction is None:
+                st.warning(message)
+                st.info(
+                    "Complete or miss this habit for at least 5 days "
+                    "to generate an ML prediction."
                 )
-
-            with col2:
+            else:
+                st.metric(
+                    "Completion Likelihood",
+                    f"{prediction:.1f}%",
+                )
+                st.progress(
+                    min(max(float(prediction) / 100, 0.0), 1.0)
+                )
 
                 if prediction >= 70:
-
                     st.success(
-                        "High"
+                        "Your consistency is strong. Keep following your current routine."
                     )
-
                 elif prediction >= 40:
-
                     st.warning(
-                        "Moderate"
+                        "Your consistency is moderate. Try completing this habit at the same time every day."
                     )
-
                 else:
-
-                    st.error(
-                        "Low"
+                    st.info(
+                        "Your completion likelihood is low. Try a smaller target and a fixed time."
                     )
 
-
-            st.progress(
-                min(
-                    max(
-                        prediction / 100,
-                        0.0
-                    ),
-                    1.0
-                )
-            )
-
-
-            # =================================================
-            # SMART RECOMMENDATION
-            # =================================================
-
-            st.markdown(
-                "#### 💡 Smart Recommendation"
-            )
-
-            if prediction >= 70:
-
-                st.success(
-                    "🔥 Your consistency is strong. "
-                    "Keep following your current routine."
-                )
-
-            elif prediction >= 40:
-
-                st.warning(
-                    "💪 Your consistency is moderate. "
-                    "Try completing this habit at the same "
-                    "time every day."
-                )
-
-            else:
-
-                st.info(
-                    "🌱 Your completion likelihood is low. "
-                    "Try a smaller target and set a fixed "
-                    "time for this habit."
-                )
-
-
     # =================================================
-    # FINAL MOTIVATION
+    # FOOTER
     # =================================================
-
-    st.divider()
-
-    if completed_habits == total_habits:
-
-        st.success(
-            "🎉 Excellent! You completed all your habits!"
-        )
-
-    elif completed_habits > 0:
-
-        st.info(
-            "💪 Good progress! Keep going and complete the remaining habits."
-        )
-
-    else:
-
-        st.info(
-            "🌱 Start with one habit today. Small steps create big results."
-        )
+    st.markdown(
+        """
+        <div class="footer">
+            AI Smart Habit Tracker • Build better habits, one day at a time.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
