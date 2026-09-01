@@ -7,7 +7,6 @@ import streamlit as st
 # =====================================================
 
 def get_connection():
-
     return psycopg2.connect(
         st.secrets["DATABASE_URL"]
     )
@@ -39,7 +38,6 @@ def create_tables():
             """
         )
 
-
         # =================================================
         # HABITS TABLE
         # =================================================
@@ -52,7 +50,7 @@ def create_tables():
                 habit_name TEXT NOT NULL,
                 category TEXT,
                 target TEXT,
-                frequency TEXT,
+                frequency TEXT DEFAULT 'Daily',
                 status TEXT DEFAULT 'Pending',
 
                 FOREIGN KEY (user_id)
@@ -62,7 +60,6 @@ def create_tables():
             """
         )
 
-
         # =================================================
         # ADD FREQUENCY TO OLD TABLE
         # =================================================
@@ -70,10 +67,9 @@ def create_tables():
         cursor.execute(
             """
             ALTER TABLE habits
-            ADD COLUMN IF NOT EXISTS frequency TEXT
+            ADD COLUMN IF NOT EXISTS frequency TEXT DEFAULT 'Daily'
             """
         )
-
 
         # =================================================
         # PROGRESS TABLE
@@ -94,7 +90,6 @@ def create_tables():
             """
         )
 
-
         # =================================================
         # PREVENT DUPLICATE DAILY RECORDS
         # =================================================
@@ -107,20 +102,16 @@ def create_tables():
             """
         )
 
-
         # =================================================
         # COMMIT CHANGES
         # =================================================
 
         conn.commit()
 
-
     except Exception as e:
 
         conn.rollback()
-
         raise e
-
 
     finally:
 
