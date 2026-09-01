@@ -18,10 +18,6 @@ def mobile_home():
         """
         <style>
 
-        /* ================================
-           MAIN PAGE
-        ================================= */
-
         .stApp {
             background: #08080d;
             color: white;
@@ -33,9 +29,7 @@ def mobile_home():
             padding-bottom: 3rem;
         }
 
-        /* ================================
-           BRAND
-        ================================= */
+        /* BRAND */
 
         .brand-section {
             text-align: center;
@@ -61,9 +55,7 @@ def mobile_home():
             margin-top: 8px;
         }
 
-        /* ================================
-           WELCOME
-        ================================= */
+        /* WELCOME */
 
         .welcome-section {
             text-align: center;
@@ -83,9 +75,7 @@ def mobile_home():
             margin-top: 8px;
         }
 
-        /* ================================
-           SECTION TITLE
-        ================================= */
+        /* SECTION TITLE */
 
         .section-title {
             color: white;
@@ -95,9 +85,7 @@ def mobile_home():
             margin-bottom: 18px;
         }
 
-        /* ================================
-           STAT CARDS
-        ================================= */
+        /* STAT CARDS */
 
         .stat-card {
             background: #111118;
@@ -126,9 +114,7 @@ def mobile_home():
             margin-top: 4px;
         }
 
-        /* ================================
-           PROGRESS
-        ================================= */
+        /* PROGRESS */
 
         .progress-card {
             background: #111118;
@@ -177,9 +163,7 @@ def mobile_home():
             margin-top: 15px;
         }
 
-        /* ================================
-           HABIT CARDS
-        ================================= */
+        /* HABIT CARDS */
 
         .habit-card {
             background: #111118;
@@ -218,9 +202,7 @@ def mobile_home():
             font-size: 13px;
         }
 
-        /* ================================
-           AI SECTION
-        ================================= */
+        /* AI */
 
         .ai-card {
             background: #111118;
@@ -262,9 +244,7 @@ def mobile_home():
             font-size: 14px;
         }
 
-        /* ================================
-           STREAMLIT BUTTONS
-        ================================= */
+        /* BUTTONS */
 
         .stButton > button {
             background: #a855f7;
@@ -279,9 +259,7 @@ def mobile_home():
             color: white;
         }
 
-        /* ================================
-           FOOTER
-        ================================= */
+        /* FOOTER */
 
         .footer {
             text-align: center;
@@ -304,9 +282,7 @@ def mobile_home():
         """
         <div class="brand-section">
 
-            <div class="brand-icon">
-                💜
-            </div>
+            <div class="brand-icon">💜</div>
 
             <div class="brand-title">
                 AI Smart Habit Tracker
@@ -323,7 +299,7 @@ def mobile_home():
     )
 
     # =========================================================
-    # GET USER
+    # USER
     # =========================================================
 
     user_id = st.session_state.get("user_id")
@@ -357,7 +333,7 @@ def mobile_home():
         conn.close()
 
     # =========================================================
-    # TODAY'S DATE
+    # TODAY
     # =========================================================
 
     today = date.today()
@@ -453,19 +429,9 @@ def mobile_home():
         st.markdown(
             f"""
             <div class="stat-card">
-
-                <div class="stat-icon">
-                    📋
-                </div>
-
-                <div class="stat-label">
-                    Total Habits
-                </div>
-
-                <div class="stat-value">
-                    {total_habits}
-                </div>
-
+                <div class="stat-icon">📋</div>
+                <div class="stat-label">Total Habits</div>
+                <div class="stat-value">{total_habits}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -475,19 +441,9 @@ def mobile_home():
         st.markdown(
             f"""
             <div class="stat-card">
-
-                <div class="stat-icon">
-                    ✅
-                </div>
-
-                <div class="stat-label">
-                    Completed Today
-                </div>
-
-                <div class="stat-value">
-                    {completed_today}
-                </div>
-
+                <div class="stat-icon">✅</div>
+                <div class="stat-label">Completed Today</div>
+                <div class="stat-value">{completed_today}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -497,19 +453,9 @@ def mobile_home():
         st.markdown(
             f"""
             <div class="stat-card">
-
-                <div class="stat-icon">
-                    ⏳
-                </div>
-
-                <div class="stat-label">
-                    Pending
-                </div>
-
-                <div class="stat-value">
-                    {pending}
-                </div>
-
+                <div class="stat-icon">⏳</div>
+                <div class="stat-label">Pending</div>
+                <div class="stat-value">{pending}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -519,19 +465,9 @@ def mobile_home():
         st.markdown(
             f"""
             <div class="stat-card">
-
-                <div class="stat-icon">
-                    🎯
-                </div>
-
-                <div class="stat-label">
-                    Today's Progress
-                </div>
-
-                <div class="stat-value">
-                    {progress}%
-                </div>
-
+                <div class="stat-icon">🎯</div>
+                <div class="stat-label">Today's Progress</div>
+                <div class="stat-value">{progress}%</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -540,6 +476,11 @@ def mobile_home():
     # =========================================================
     # DAILY PROGRESS
     # =========================================================
+
+    if progress >= 50:
+        motivation = "Great work! You're more than halfway there."
+    else:
+        motivation = "Keep going! Every small step counts."
 
     st.markdown(
         f"""
@@ -566,9 +507,7 @@ def mobile_home():
             </div>
 
             <div class="motivation">
-                🔥
-                {"Great work! You're more than halfway there." if progress >= 50
-                else "Keep going! Every small step counts."}
+                🔥 {motivation}
             </div>
 
         </div>
@@ -602,15 +541,14 @@ def mobile_home():
             category = habit[2] or "General"
             target = habit[3] or "-"
             frequency = habit[4] or "Daily"
-            status = habit[5] or "Pending"
 
-            # Get consistency
             try:
                 consistency = get_recent_consistency(habit_id)
             except Exception:
                 consistency = 0
 
-            # Check today's status
+            # Check today's completion
+
             conn = get_connection()
             cursor = conn.cursor()
 
@@ -636,6 +574,9 @@ def mobile_home():
                 display_status = "Completed"
             else:
                 display_status = "Pending"
+
+            # IMPORTANT:
+            # HTML is rendered through st.markdown
 
             st.markdown(
                 f"""
@@ -667,7 +608,7 @@ def mobile_home():
             )
 
     # =========================================================
-    # AI HABIT PREDICTION
+    # AI PREDICTION
     # =========================================================
 
     st.markdown(
@@ -691,7 +632,7 @@ def mobile_home():
     if habits:
 
         habit_options = {
-            f"{h[1]}": h[0]
+            h[1]: h[0]
             for h in habits
         }
 
