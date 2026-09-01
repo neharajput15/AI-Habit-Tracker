@@ -10,7 +10,6 @@ from daily_checkin import daily_checkin
 from ai_helper import ai_assistant
 from streak import show_streaks
 from mobile_home import mobile_home
-from analytics import analytics
 
 from remember_login import (
     get_saved_user,
@@ -19,7 +18,7 @@ from remember_login import (
 
 
 # =====================================================
-# PAGE CONFIGURATION
+# PAGE SETTINGS
 # =====================================================
 
 st.set_page_config(
@@ -27,269 +26,6 @@ st.set_page_config(
     page_icon="💜",
     layout="wide",
     initial_sidebar_state="expanded"
-)
-
-
-# =====================================================
-# PURPLE + BLACK THEME
-# SAME IN BOTH MODES
-# =====================================================
-
-st.markdown(
-    """
-    <style>
-
-    /* ===============================
-       MAIN BACKGROUND
-    =============================== */
-
-    .stApp {
-        background:
-            radial-gradient(
-                circle at top right,
-                #24104a 0%,
-                #10091f 35%,
-                #08060d 75%
-            ) !important;
-
-        color: #ffffff !important;
-    }
-
-
-    /* ===============================
-       MAIN CONTENT
-    =============================== */
-
-    .main .block-container {
-        max-width: 1250px;
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-    }
-
-
-    /* ===============================
-       ALL TEXT
-    =============================== */
-
-    h1, h2, h3, h4, h5, h6,
-    p, span, label, div {
-        color: #ffffff;
-    }
-
-
-    /* ===============================
-       SIDEBAR
-    =============================== */
-
-    [data-testid="stSidebar"] {
-        background:
-            linear-gradient(
-                180deg,
-                #0d0915 0%,
-                #130b22 100%
-            ) !important;
-
-        border-right: 1px solid #30204d;
-    }
-
-    [data-testid="stSidebar"] * {
-        color: #ffffff !important;
-    }
-
-
-    /* ===============================
-       BUTTONS
-    =============================== */
-
-    .stButton > button {
-        width: 100%;
-
-        background:
-            linear-gradient(
-                135deg,
-                #7c3aed,
-                #a855f7
-            ) !important;
-
-        color: white !important;
-
-        border: none !important;
-
-        border-radius: 12px !important;
-
-        padding: 0.65rem 1rem !important;
-
-        font-weight: 600 !important;
-
-        transition: 0.2s;
-    }
-
-    .stButton > button:hover {
-        background:
-            linear-gradient(
-                135deg,
-                #9333ea,
-                #c084fc
-            ) !important;
-
-        transform: translateY(-1px);
-    }
-
-
-    /* ===============================
-       INPUTS
-    =============================== */
-
-    input,
-    textarea,
-    [data-baseweb="select"] > div {
-        background-color: #17121f !important;
-
-        color: white !important;
-
-        border: 1px solid #493568 !important;
-
-        border-radius: 10px !important;
-    }
-
-
-    /* ===============================
-       CARDS
-    =============================== */
-
-    [data-testid="stMetric"] {
-        background:
-            linear-gradient(
-                145deg,
-                #171020,
-                #21132f
-            );
-
-        border: 1px solid #493568;
-
-        border-radius: 16px;
-
-        padding: 18px;
-
-        box-shadow:
-            0 8px 25px rgba(0,0,0,0.35);
-    }
-
-
-    /* ===============================
-       CONTAINERS
-    =============================== */
-
-    [data-testid="stVerticalBlockBorderWrapper"] {
-        background:
-            linear-gradient(
-                145deg,
-                #120d1a,
-                #1d1129
-            ) !important;
-
-        border: 1px solid #493568 !important;
-
-        border-radius: 16px !important;
-    }
-
-
-    /* ===============================
-       EXPANDER
-    =============================== */
-
-    [data-testid="stExpander"] {
-        background: #120d1a !important;
-
-        border: 1px solid #493568 !important;
-
-        border-radius: 14px !important;
-    }
-
-
-    /* ===============================
-       PROGRESS BAR
-    =============================== */
-
-    [data-testid="stProgress"] > div {
-        background-color: #281b38 !important;
-
-        border-radius: 20px;
-    }
-
-    [data-testid="stProgress"] > div > div {
-        background:
-            linear-gradient(
-                90deg,
-                #7c3aed,
-                #c084fc
-            ) !important;
-
-        border-radius: 20px;
-    }
-
-
-    /* ===============================
-       DIVIDER
-    =============================== */
-
-    hr {
-        border-color: #332044 !important;
-    }
-
-
-    /* ===============================
-       DATAFRAME
-    =============================== */
-
-    [data-testid="stDataFrame"] {
-        border: 1px solid #493568;
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-
-    /* ===============================
-       SUCCESS
-    =============================== */
-
-    [data-testid="stAlert"] {
-        border-radius: 12px !important;
-    }
-
-
-    /* ===============================
-       TITLE
-    =============================== */
-
-    .app-title {
-        font-size: 38px;
-        font-weight: 800;
-
-        background:
-            linear-gradient(
-                90deg,
-                #c084fc,
-                #8b5cf6
-            );
-
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-
-    /* ===============================
-       SMALL TEXT
-    =============================== */
-
-    .subtitle {
-        color: #aaa0b8 !important;
-        font-size: 15px;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
 )
 
 
@@ -315,6 +51,9 @@ if "name" not in st.session_state:
 
 if "page" not in st.session_state:
     st.session_state.page = "Home"
+
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
 
 
 # =====================================================
@@ -373,179 +112,487 @@ if not st.session_state.logged_in:
 
 
 # =====================================================
-# LOGIN / REGISTER
+# GLOBAL PURPLE / BLACK THEME
 # =====================================================
 
-if not st.session_state.logged_in:
+st.markdown(
+    """
+    <style>
 
-    st.markdown(
-        '<div class="app-title">💜 AI Smart Habit Tracker</div>',
-        unsafe_allow_html=True
-    )
+    /* Main background */
 
-    st.markdown(
-        '<div class="subtitle">Build better habits. Track your progress. Stay consistent.</div>',
-        unsafe_allow_html=True
-    )
+    .stApp {
+        background:
+            radial-gradient(
+                circle at 20% 0%,
+                rgba(115, 50, 180, 0.18),
+                transparent 35%
+            ),
+            radial-gradient(
+                circle at 90% 10%,
+                rgba(80, 30, 130, 0.15),
+                transparent 35%
+            ),
+            #0d0813;
+    }
 
-    st.divider()
 
-    option = st.radio(
-        "Choose an option",
-        ["🔐 Login", "📝 Register"],
-        horizontal=True
-    )
+    /* Sidebar */
 
-    if option == "🔐 Login":
-        login()
-    else:
-        register()
+    [data-testid="stSidebar"] {
 
-    st.stop()
+        background:
+            linear-gradient(
+                180deg,
+                #10091a,
+                #170d24
+            );
+
+        border-right:
+            1px solid #38234b;
+    }
+
+
+    [data-testid="stSidebar"] * {
+        color: #eee5f7 !important;
+    }
+
+
+    /* Normal text */
+
+    .stApp p,
+    .stApp label {
+        color: #e8dff0;
+    }
+
+
+    /* Buttons */
+
+    .stButton > button {
+
+        background:
+            linear-gradient(
+                135deg,
+                #7135c9,
+                #955be8
+            ) !important;
+
+        color: white !important;
+
+        border: none !important;
+
+        border-radius: 13px !important;
+
+        font-weight: 700 !important;
+
+        min-height: 45px;
+    }
+
+
+    .stButton > button:hover {
+
+        background:
+            linear-gradient(
+                135deg,
+                #8246dd,
+                #a66df5
+            ) !important;
+
+        color: white !important;
+    }
+
+
+    /* Select box */
+
+    div[data-baseweb="select"] > div {
+
+        background-color: #181020 !important;
+
+        color: white !important;
+
+        border: 1px solid #51356d !important;
+
+        border-radius: 12px !important;
+    }
+
+
+    /* Progress */
+
+    .stProgress > div > div > div > div {
+
+        background:
+            linear-gradient(
+                90deg,
+                #7135c9,
+                #ad7aff
+            ) !important;
+    }
+
+
+    /* Hide Streamlit menu */
+
+    #MainMenu {
+        visibility: hidden;
+    }
+
+
+    footer {
+        visibility: hidden;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # =====================================================
 # SIDEBAR
 # =====================================================
 
-with st.sidebar:
+if st.session_state.logged_in:
 
-    st.markdown(
-        '<div class="app-title">💜 Habit Tracker</div>',
-        unsafe_allow_html=True
-    )
+    with st.sidebar:
 
-    st.caption(
-        f"Welcome, {st.session_state.name} 👋"
-    )
+        st.markdown(
+            """
+            <div style="
+                text-align:center;
+                padding:15px 5px 25px 5px;
+            ">
 
-    st.divider()
+                <div style="
+                    font-size:38px;
+                ">
+                    💜
+                </div>
 
-    if st.button("🏠 Home"):
-        st.session_state.page = "Home"
-        st.rerun()
+                <div style="
+                    font-size:20px;
+                    font-weight:800;
+                    color:white;
+                ">
+                    AI Habit Tracker
+                </div>
 
-    if st.button("➕ Add Habit"):
-        st.session_state.page = "Add Habit"
-        st.rerun()
+                <div style="
+                    font-size:12px;
+                    color:#a994bd;
+                ">
+                    Build better habits
+                </div>
 
-    if st.button("📋 My Habits"):
-        st.session_state.page = "My Habits"
-        st.rerun()
-
-    if st.button("📅 Daily Check-in"):
-        st.session_state.page = "Check-in"
-        st.rerun()
-
-    if st.button("📊 Dashboard"):
-        st.session_state.page = "Progress"
-        st.rerun()
-
-    if st.button("🤖 AI Coach"):
-        st.session_state.page = "AI"
-        st.rerun()
-
-    if st.button("🔥 Streaks"):
-        st.session_state.page = "Streaks"
-        st.rerun()
-
-    st.divider()
-
-    if st.button("🚪 Logout"):
-
-        clear_saved_user()
-
-        st.session_state.clear()
-
-        st.rerun()
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
-# =====================================================
-# HOME
-# =====================================================
+        st.markdown("---")
 
-if st.session_state.page == "Home":
 
-    mobile_home()
+        # -------------------------------------------------
+        # NAVIGATION
+        # -------------------------------------------------
 
-    st.divider()
+        if st.button(
+            "🏠  Home",
+            use_container_width=True
+        ):
 
-    st.subheader("Quick Actions")
+            st.session_state.page = "Home"
+            st.rerun()
 
-    col1, col2, col3 = st.columns(3)
 
-    with col1:
+        if st.button(
+            "➕  Add Habit",
+            use_container_width=True
+        ):
 
-        if st.button("➕ Add Habit"):
             st.session_state.page = "Add Habit"
             st.rerun()
 
-    with col2:
 
-        if st.button("📅 Check-in"):
-            st.session_state.page = "Check-in"
+        if st.button(
+            "📋  My Habits",
+            use_container_width=True
+        ):
+
+            st.session_state.page = "My Habits"
             st.rerun()
 
-    with col3:
 
-        if st.button("📊 Dashboard"):
+        if st.button(
+            "📊  Dashboard",
+            use_container_width=True
+        ):
+
             st.session_state.page = "Progress"
             st.rerun()
 
 
+        if st.button(
+            "🤖  AI Coach",
+            use_container_width=True
+        ):
+
+            st.session_state.page = "AI"
+            st.rerun()
+
+
+        if st.button(
+            "🔥  Streaks",
+            use_container_width=True
+        ):
+
+            st.session_state.page = "Streaks"
+            st.rerun()
+
+
+        if st.button(
+            "📅  Daily Check-in",
+            use_container_width=True
+        ):
+
+            st.session_state.page = "Check-in"
+            st.rerun()
+
+
+        st.markdown("---")
+
+
+        # -------------------------------------------------
+        # USER
+        # -------------------------------------------------
+
+        st.markdown(
+            f"""
+            <div style="
+                background:#1b1027;
+                border:1px solid #3e2753;
+                border-radius:15px;
+                padding:14px;
+                margin-bottom:15px;
+            ">
+
+                <div style="
+                    font-size:12px;
+                    color:#a995ba;
+                ">
+                    LOGGED IN AS
+                </div>
+
+                <div style="
+                    font-size:16px;
+                    font-weight:700;
+                    color:white;
+                    margin-top:4px;
+                ">
+                    👤 {st.session_state.name}
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+        # -------------------------------------------------
+        # DARK MODE
+        # -------------------------------------------------
+
+        st.session_state.dark_mode = st.toggle(
+            "🌙 Dark Mode",
+            value=st.session_state.dark_mode
+        )
+
+
+        # -------------------------------------------------
+        # LOGOUT
+        # -------------------------------------------------
+
+        if st.button(
+            "🚪 Logout",
+            use_container_width=True
+        ):
+
+            clear_saved_user()
+
+            st.session_state.clear()
+
+            st.rerun()
+
+
 # =====================================================
-# ADD HABIT
+# NOT LOGGED IN
 # =====================================================
 
-elif st.session_state.page == "Add Habit":
+if not st.session_state.logged_in:
 
-    add_habit()
+    st.markdown(
+        """
+        <div style="
+            max-width:700px;
+            margin:80px auto 0 auto;
+            text-align:center;
+        ">
 
+            <div style="
+                font-size:60px;
+            ">
+                💜
+            </div>
 
-# =====================================================
-# MY HABITS
-# =====================================================
+            <h1 style="
+                color:white;
+                font-size:42px;
+                font-weight:900;
+            ">
+                AI Smart Habit Tracker
+            </h1>
 
-elif st.session_state.page == "My Habits":
+            <p style="
+                color:#b9a9c7;
+                font-size:16px;
+            ">
+                Build better habits.
+                Track your progress.
+                Become consistent.
+            </p>
 
-    view_habits()
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-
-# =====================================================
-# DASHBOARD
-# =====================================================
-
-elif st.session_state.page == "Progress":
-
-    dashboard()
 
     st.divider()
 
-    analytics()
+
+    option = st.radio(
+        "Choose an option",
+        [
+            "🔐 Login",
+            "📝 Register"
+        ],
+        horizontal=True
+    )
+
+
+    if option == "🔐 Login":
+
+        login()
+
+    else:
+
+        register()
 
 
 # =====================================================
-# AI
+# LOGGED IN
 # =====================================================
 
-elif st.session_state.page == "AI":
+else:
 
-    ai_assistant()
+    # =================================================
+    # HOME
+    # =================================================
+
+    if st.session_state.page == "Home":
+
+        mobile_home()
+
+        st.markdown("---")
+
+        st.subheader(
+            "Quick Actions"
+        )
+
+        col1, col2, col3 = st.columns(3)
 
 
-# =====================================================
-# STREAKS
-# =====================================================
+        with col1:
 
-elif st.session_state.page == "Streaks":
+            if st.button(
+                "➕ Add Habit",
+                use_container_width=True
+            ):
 
-    show_streaks()
+                st.session_state.page = "Add Habit"
+                st.rerun()
 
 
-# =====================================================
-# CHECK-IN
-# =====================================================
+        with col2:
 
-elif st.session_state.page == "Check-in":
+            if st.button(
+                "📋 My Habits",
+                use_container_width=True
+            ):
 
-    daily_checkin()
+                st.session_state.page = "My Habits"
+                st.rerun()
+
+
+        with col3:
+
+            if st.button(
+                "📊 Dashboard",
+                use_container_width=True
+            ):
+
+                st.session_state.page = "Progress"
+                st.rerun()
+
+
+    # =================================================
+    # ADD HABIT
+    # =================================================
+
+    elif st.session_state.page == "Add Habit":
+
+        add_habit()
+
+
+    # =================================================
+    # MY HABITS
+    # =================================================
+
+    elif st.session_state.page == "My Habits":
+
+        view_habits()
+
+
+    # =================================================
+    # DASHBOARD
+    # =================================================
+
+    elif st.session_state.page == "Progress":
+
+        dashboard()
+
+
+    # =================================================
+    # AI COACH
+    # =================================================
+
+    elif st.session_state.page == "AI":
+
+        ai_assistant()
+
+
+    # =================================================
+    # STREAKS
+    # =================================================
+
+    elif st.session_state.page == "Streaks":
+
+        show_streaks()
+
+
+    # =================================================
+    # DAILY CHECK-IN
+    # =================================================
+
+    elif st.session_state.page == "Check-in":
+
+        daily_checkin()
