@@ -2,17 +2,12 @@ import streamlit as st
 from datetime import datetime
 
 from database import get_connection
-
 from ml_prediction import (
     get_recent_consistency,
     get_last_five_days,
     predict_habit_completion
 )
 
-
-# =====================================================
-# MOBILE HOME
-# =====================================================
 
 def mobile_home():
 
@@ -22,16 +17,14 @@ def mobile_home():
         st.warning("Please login first.")
         return
 
-
-    # =================================================
+    # =====================================================
     # LOAD HABITS
-    # =================================================
+    # =====================================================
 
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
-
         cursor.execute(
             """
             SELECT
@@ -51,53 +44,36 @@ def mobile_home():
         habits = cursor.fetchall()
 
     except Exception as e:
-
         st.error(f"Unable to load habits: {e}")
-        return
+        habits = []
 
     finally:
-
         cursor.close()
         conn.close()
 
-
-    # =================================================
-    # DATE & TIME
-    # =================================================
+    # =====================================================
+    # DATE & GREETING
+    # =====================================================
 
     now = datetime.now()
 
-    today_text = now.strftime(
-        "%A, %d %B %Y"
-    )
+    today_text = now.strftime("%A, %d %B %Y")
 
-    current_hour = now.hour
-
-    if current_hour < 12:
-
+    if now.hour < 12:
         greeting = "Good Morning 🌅"
-
-    elif current_hour < 17:
-
+    elif now.hour < 17:
         greeting = "Good Afternoon ☀️"
-
-    elif current_hour < 21:
-
+    elif now.hour < 21:
         greeting = "Good Evening 🌆"
-
     else:
-
         greeting = "Good Night 🌙"
 
-
-    # =================================================
+    # =====================================================
     # TODAY'S COMPLETION
-    # =================================================
+    # =====================================================
 
     completed_today = 0
-
     habit_today_status = {}
-
 
     for habit in habits:
 
@@ -107,7 +83,6 @@ def mobile_home():
         cursor = conn.cursor()
 
         try:
-
             cursor.execute(
                 """
                 SELECT completed
@@ -120,35 +95,25 @@ def mobile_home():
                 (habit_id,)
             )
 
-            record = cursor.fetchone()
+            result = cursor.fetchone()
 
-            if record:
-
-                completed = int(record[0])
-
-            else:
-
-                completed = 0
+            completed = int(result[0]) if result else 0
 
             habit_today_status[habit_id] = completed
 
             if completed == 1:
-
                 completed_today += 1
 
         except Exception:
-
             habit_today_status[habit_id] = 0
 
         finally:
-
             cursor.close()
             conn.close()
 
-
-    # =================================================
+    # =====================================================
     # STATISTICS
-    # =================================================
+    # =====================================================
 
     total_habits = len(habits)
 
@@ -163,67 +128,111 @@ def mobile_home():
         else 0
     )
 
+    progress_width = min(
+        max(progress_percentage, 0),
+        100
+    )
 
-    # =================================================
-    # MAIN CSS
-    # =================================================
+    # =====================================================
+    # CUSTOM CSS
+    # =====================================================
 
     st.markdown(
         """
         <style>
 
-        /* ==========================================
-           MAIN PAGE
-        ========================================== */
+        /* ================================
+           PAGE
+        ================================= */
 
-        .home-wrapper {
-            padding: 10px 5px 20px 5px;
+        .main {
+            background: #08060b;
+        }
+
+        .block-container {
+            max-width: 1200px;
+            padding-top: 25px;
+            padding-bottom: 40px;
         }
 
 
-        /* ==========================================
-           GREETING
-        ========================================== */
+        /* ================================
+           APP BRAND
+        ================================= */
+
+        .brand-section {
+            text-align: center;
+            padding: 10px 0 25px 0;
+        }
+
+        .brand-icon {
+            font-size: 58px;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .brand-title {
+            color: #ffffff;
+            font-size: 40px;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+
+        .brand-subtitle {
+            color: #b9a9c7;
+            font-size: 15px;
+            margin-top: 8px;
+        }
+
+
+        /* ================================
+           WELCOME
+        ================================= */
+
+        .welcome-box {
+            margin-top: 15px;
+            margin-bottom: 25px;
+        }
 
         .welcome-title {
-            font-size: 34px;
-            font-weight: 800;
             color: #ffffff;
+            font-size: 32px;
+            font-weight: 800;
             margin-bottom: 5px;
         }
 
         .welcome-subtitle {
+            color: #a998b8;
             font-size: 14px;
-            color: #b9a6c8;
-            margin-bottom: 25px;
         }
 
 
-        /* ==========================================
-           SECTION TITLE
-        ========================================== */
+        /* ================================
+           SECTION
+        ================================= */
 
         .section-title {
+            color: #ffffff;
             font-size: 22px;
             font-weight: 800;
-            color: #ffffff;
-            margin-top: 28px;
-            margin-bottom: 16px;
+            margin-top: 25px;
+            margin-bottom: 15px;
         }
 
 
-        /* ==========================================
+        /* ================================
            STAT CARDS
-        ========================================== */
+        ================================= */
 
         .stat-card {
             background: linear-gradient(
                 145deg,
-                #17101f,
-                #281338
+                #151019,
+                #251333
             );
 
-            border: 1px solid #48245f;
+            border: 1px solid #47245e;
 
             border-radius: 18px;
 
@@ -232,16 +241,16 @@ def mobile_home():
             min-height: 135px;
 
             box-shadow:
-                0 8px 25px rgba(0, 0, 0, 0.25);
+                0 8px 25px rgba(0,0,0,0.25);
         }
 
         .stat-icon {
-            font-size: 25px;
-            margin-bottom: 10px;
+            font-size: 26px;
+            margin-bottom: 8px;
         }
 
         .stat-title {
-            color: #b9a6c8;
+            color: #b9a9c7;
             font-size: 13px;
             font-weight: 600;
         }
@@ -249,103 +258,85 @@ def mobile_home():
         .stat-value {
             color: #ffffff;
             font-size: 30px;
-            font-weight: 800;
+            font-weight: 900;
             margin-top: 5px;
         }
 
 
-        /* ==========================================
-           PROGRESS CARD
-        ========================================== */
+        /* ================================
+           PROGRESS
+        ================================= */
 
         .progress-card {
             background: linear-gradient(
                 135deg,
                 #241032,
-                #3a1655
+                #3c1857
             );
 
-            border: 1px solid #5b3179;
+            border: 1px solid #633686;
 
             border-radius: 20px;
 
             padding: 25px;
 
-            margin-top: 5px;
-
             box-shadow:
-                0 10px 30px rgba(45, 15, 65, 0.30);
+                0 10px 30px rgba(60,20,90,0.30);
         }
 
         .progress-number {
-            font-size: 42px;
+            color: #c477ff;
+            font-size: 45px;
             font-weight: 900;
-            color: #b875ff;
         }
 
-        .progress-text {
-            color: #cdbbd8;
+        .progress-description {
+            color: #d0c0d9;
             font-size: 14px;
-            margin-bottom: 16px;
+            margin-bottom: 15px;
         }
 
-        .progress-bar-bg {
-            height: 10px;
+        .progress-background {
             width: 100%;
-
-            background: #392346;
-
+            height: 10px;
+            background: #3b2647;
             border-radius: 20px;
-
             overflow: hidden;
         }
 
-        .progress-bar-fill {
+        .progress-fill {
             height: 100%;
-
             background: linear-gradient(
                 90deg,
-                #7438c5,
-                #b96dff
+                #7135b5,
+                #bd70ff
             );
-
             border-radius: 20px;
         }
 
-
-        /* ==========================================
-           MESSAGE
-        ========================================== */
-
         .message-card {
-            background: #18111f;
-
-            border: 1px solid #3d274b;
-
-            border-radius: 16px;
-
-            padding: 15px 18px;
-
-            margin-top: 14px;
-
-            color: #ddd0e5;
-
+            background: #17101d;
+            border: 1px solid #40264f;
+            border-radius: 15px;
+            padding: 14px 18px;
+            margin-top: 12px;
+            color: #d7cadf;
             font-size: 14px;
         }
 
 
-        /* ==========================================
-           HABIT CARD
-        ========================================== */
+        /* ================================
+           HABITS
+        ================================= */
 
         .habit-card {
             background: linear-gradient(
                 145deg,
-                #17101f,
-                #24132f
+                #151019,
+                #24132e
             );
 
-            border: 1px solid #432654;
+            border: 1px solid #432650;
 
             border-radius: 18px;
 
@@ -354,134 +345,109 @@ def mobile_home():
             margin-bottom: 14px;
 
             box-shadow:
-                0 6px 20px rgba(0, 0, 0, 0.20);
+                0 6px 20px rgba(0,0,0,0.20);
         }
 
         .habit-name {
             color: #ffffff;
-
             font-size: 18px;
-
             font-weight: 800;
-
-            margin-bottom: 5px;
         }
 
         .habit-info {
-            color: #b9a6c8;
-
+            color: #a998b8;
             font-size: 13px;
-
-            margin-bottom: 12px;
+            margin-top: 5px;
         }
 
-        .target-text {
-            color: #ddd2e5;
-
+        .habit-target {
+            color: #d7cbe0;
             font-size: 14px;
-
-            margin-bottom: 10px;
+            margin-top: 12px;
         }
 
-
-        /* ==========================================
-           BADGES
-        ========================================== */
+        .habit-consistency {
+            color: #c8b9d1;
+            font-size: 13px;
+            margin-top: 10px;
+        }
 
         .completed-badge {
             display: inline-block;
-
-            background: #173b2a;
-
-            color: #72e3a3;
-
-            border: 1px solid #286343;
-
-            padding: 5px 11px;
-
+            background: #173927;
+            color: #72e4a2;
+            border: 1px solid #286442;
+            padding: 5px 12px;
             border-radius: 20px;
-
             font-size: 12px;
-
             font-weight: 700;
+            margin-top: 12px;
         }
 
         .pending-badge {
             display: inline-block;
-
-            background: #3b2b17;
-
-            color: #f2bd68;
-
-            border: 1px solid #66502a;
-
-            padding: 5px 11px;
-
+            background: #3b2c18;
+            color: #efbd69;
+            border: 1px solid #66502b;
+            padding: 5px 12px;
             border-radius: 20px;
-
             font-size: 12px;
-
             font-weight: 700;
+            margin-top: 12px;
         }
 
 
-        /* ==========================================
-           AI CARD
-        ========================================== */
+        /* ================================
+           AI
+        ================================= */
 
         .ai-card {
             background: linear-gradient(
                 135deg,
-                #321358,
-                #4b2077
+                #30104e,
+                #4b2074
             );
 
-            border: 1px solid #7040a5;
+            border: 1px solid #70409e;
 
             border-radius: 20px;
 
             padding: 24px;
 
-            margin-top: 10px;
+            margin-top: 20px;
 
             box-shadow:
-                0 10px 30px rgba(65, 25, 100, 0.30);
+                0 10px 30px rgba(60,20,90,0.30);
         }
 
         .ai-title {
             color: #ffffff;
-
             font-size: 21px;
-
             font-weight: 800;
-
-            margin-bottom: 8px;
         }
 
-        .ai-subtitle {
-            color: #d9c6e8;
-
+        .ai-description {
+            color: #d8c7e5;
             font-size: 14px;
-
+            margin-top: 7px;
             line-height: 1.5;
         }
 
 
-        /* ==========================================
-           BUTTONS
-        ========================================== */
+        /* ================================
+           BUTTON
+        ================================= */
 
         .stButton > button {
-
             background: linear-gradient(
                 135deg,
-                #5c2491,
-                #7b36c4
+                #60259a,
+                #833bc3
             ) !important;
 
             color: white !important;
 
-            border: 1px solid #8c50d0 !important;
+            border: 1px solid #8e51cf !important;
 
             border-radius: 12px !important;
 
@@ -491,70 +457,48 @@ def mobile_home():
         }
 
         .stButton > button:hover {
-
             background: linear-gradient(
                 135deg,
                 #7130ad,
-                #9349dc
+                #984cdd
             ) !important;
 
             color: white !important;
         }
 
 
-        /* ==========================================
-           SELECTBOX
-        ========================================== */
-
-        div[data-baseweb="select"] > div {
-
-            background-color: #1d1425 !important;
-
-            border: 1px solid #4a2a5d !important;
-
-            color: white !important;
-
-            border-radius: 12px !important;
-        }
-
-
-        /* ==========================================
+        /* ================================
            FOOTER
-        ========================================== */
+        ================================= */
 
-        .footer-text {
-
+        .footer {
             text-align: center;
-
-            color: #806d8e;
-
+            color: #76657f;
             font-size: 12px;
-
-            padding: 30px 0 10px 0;
+            padding: 35px 0 10px 0;
         }
 
 
-        /* ==========================================
+        /* ================================
            MOBILE
-        ========================================== */
+        ================================= */
 
         @media (max-width: 700px) {
 
+            .brand-title {
+                font-size: 30px;
+            }
+
+            .brand-icon {
+                font-size: 48px;
+            }
+
             .welcome-title {
-                font-size: 28px;
+                font-size: 27px;
             }
 
             .section-title {
                 font-size: 20px;
-            }
-
-            .stat-card {
-                padding: 15px;
-                min-height: 120px;
-            }
-
-            .stat-value {
-                font-size: 25px;
             }
 
         }
@@ -565,21 +509,24 @@ def mobile_home():
     )
 
 
-    # =================================================
-    # WELCOME
-    # =================================================
+    # =====================================================
+    # BRAND
+    # =====================================================
 
     st.markdown(
-        f"""
-        <div class="home-wrapper">
+        """
+        <div class="brand-section">
 
-            <div class="welcome-title">
-                {greeting}
+            <div class="brand-icon">
+                💜
             </div>
 
-            <div class="welcome-subtitle">
-                Stay consistent and make progress every day.
-                &nbsp; • &nbsp; {today_text}
+            <div class="brand-title">
+                AI Smart Habit Tracker
+            </div>
+
+            <div class="brand-subtitle">
+                Build better habits. Track your progress. Become consistent.
             </div>
 
         </div>
@@ -588,9 +535,33 @@ def mobile_home():
     )
 
 
-    # =================================================
-    # TODAY'S OVERVIEW
-    # =================================================
+    # =====================================================
+    # GREETING
+    # =====================================================
+
+    st.markdown(
+        f"""
+        <div class="welcome-box">
+
+            <div class="welcome-title">
+                {greeting}
+            </div>
+
+            <div class="welcome-subtitle">
+                Stay consistent and make progress every day.
+                &nbsp; • &nbsp;
+                {today_text}
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # =====================================================
+    # OVERVIEW
+    # =====================================================
 
     st.markdown(
         """
@@ -605,19 +576,13 @@ def mobile_home():
     col1, col2, col3, col4 = st.columns(4)
 
 
-    # -------------------------------------------------
-    # TOTAL
-    # -------------------------------------------------
-
     with col1:
 
         st.markdown(
             f"""
             <div class="stat-card">
 
-                <div class="stat-icon">
-                    📋
-                </div>
+                <div class="stat-icon">📋</div>
 
                 <div class="stat-title">
                     Total Habits
@@ -633,19 +598,13 @@ def mobile_home():
         )
 
 
-    # -------------------------------------------------
-    # COMPLETED
-    # -------------------------------------------------
-
     with col2:
 
         st.markdown(
             f"""
             <div class="stat-card">
 
-                <div class="stat-icon">
-                    ✅
-                </div>
+                <div class="stat-icon">✅</div>
 
                 <div class="stat-title">
                     Completed Today
@@ -661,19 +620,13 @@ def mobile_home():
         )
 
 
-    # -------------------------------------------------
-    # PENDING
-    # -------------------------------------------------
-
     with col3:
 
         st.markdown(
             f"""
             <div class="stat-card">
 
-                <div class="stat-icon">
-                    ⏳
-                </div>
+                <div class="stat-icon">⏳</div>
 
                 <div class="stat-title">
                     Pending
@@ -689,19 +642,13 @@ def mobile_home():
         )
 
 
-    # -------------------------------------------------
-    # PROGRESS
-    # -------------------------------------------------
-
     with col4:
 
         st.markdown(
             f"""
             <div class="stat-card">
 
-                <div class="stat-icon">
-                    📈
-                </div>
+                <div class="stat-icon">📈</div>
 
                 <div class="stat-title">
                     Today's Progress
@@ -717,9 +664,9 @@ def mobile_home():
         )
 
 
-    # =================================================
-    # TODAY'S PROGRESS
-    # =================================================
+    # =====================================================
+    # PROGRESS
+    # =====================================================
 
     st.markdown(
         """
@@ -731,37 +678,21 @@ def mobile_home():
     )
 
 
-    progress_width = min(
-        max(progress_percentage, 0),
-        100
-    )
-
-
     if progress_percentage >= 80:
 
-        message = (
-            "🌟 Excellent! You're doing amazing today!"
-        )
+        message = "🌟 Excellent! You're doing amazing today!"
 
     elif progress_percentage >= 50:
 
-        message = (
-            "🌱 You're making progress. "
-            "Keep building your routine!"
-        )
+        message = "🌱 You're doing well. Keep going!"
 
     elif progress_percentage > 0:
 
-        message = (
-            "💪 Good start! Keep going and "
-            "complete the remaining habits."
-        )
+        message = "💪 Good start! Complete the remaining habits."
 
     else:
 
-        message = (
-            "🌱 Start today and build your routine!"
-        )
+        message = "🌱 Start today and build your routine!"
 
 
     st.markdown(
@@ -772,16 +703,16 @@ def mobile_home():
                 {progress_percentage:.0f}%
             </div>
 
-            <div class="progress-text">
+            <div class="progress-description">
                 {completed_today} of {total_habits}
                 habits completed today
             </div>
 
-            <div class="progress-bar-bg">
+            <div class="progress-background">
 
                 <div
-                    class="progress-bar-fill"
-                    style="width:{progress_width}%">
+                    class="progress-fill"
+                    style="width:{progress_width}%;">
                 </div>
 
             </div>
@@ -796,9 +727,9 @@ def mobile_home():
     )
 
 
-    # =================================================
+    # =====================================================
     # MY HABITS
-    # =================================================
+    # =====================================================
 
     st.markdown(
         """
@@ -839,24 +770,16 @@ def mobile_home():
             frequency = (
                 habit[4]
                 if habit[4]
-                else "None"
+                else "Not set"
             )
 
-
-            # -----------------------------------------
-            # CONSISTENCY
-            # -----------------------------------------
 
             consistency = get_recent_consistency(
                 habit_id
             )
 
 
-            # -----------------------------------------
-            # TODAY STATUS
-            # -----------------------------------------
-
-            is_completed = (
+            completed = (
                 habit_today_status.get(
                     habit_id,
                     0
@@ -864,7 +787,7 @@ def mobile_home():
             )
 
 
-            if is_completed:
+            if completed:
 
                 badge = """
                 <span class="completed-badge">
@@ -881,10 +804,6 @@ def mobile_home():
                 """
 
 
-            # -----------------------------------------
-            # HABIT CARD
-            # -----------------------------------------
-
             st.markdown(
                 f"""
                 <div class="habit-card">
@@ -899,15 +818,12 @@ def mobile_home():
                         {frequency}
                     </div>
 
-                    <div class="target-text">
+                    <div class="habit-target">
                         Target:
                         <b>{target}</b>
                     </div>
 
-                    <div style="
-                        margin-bottom:12px;
-                        color:#cbbbd6;
-                    ">
+                    <div class="habit-consistency">
                         Recent consistency:
                         <b>{consistency:.1f}%</b>
                     </div>
@@ -920,9 +836,9 @@ def mobile_home():
             )
 
 
-    # =================================================
+    # =====================================================
     # AI PREDICTION
-    # =================================================
+    # =====================================================
 
     st.markdown(
         """
@@ -932,7 +848,7 @@ def mobile_home():
                 🤖 AI Habit Prediction
             </div>
 
-            <div class="ai-subtitle">
+            <div class="ai-description">
                 Use your previous habit history to estimate
                 your next completion likelihood.
             </div>
@@ -943,14 +859,10 @@ def mobile_home():
     )
 
 
-    # =================================================
-    # PREDICTION
-    # =================================================
-
     if habits:
 
         selected_habit = st.selectbox(
-            "Select a habit for prediction",
+            "Select a habit",
             habits,
             format_func=lambda x: x[1],
             key="home_prediction_habit"
@@ -959,30 +871,6 @@ def mobile_home():
 
         selected_id = selected_habit[0]
 
-        selected_name = selected_habit[1]
-
-
-        st.markdown(
-            f"""
-            <div class="habit-card">
-
-                <div class="habit-name">
-                    {selected_name}
-                </div>
-
-                <div class="habit-info">
-                    Recent 5-day habit history
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-
-        # ---------------------------------------------
-        # RECENT HISTORY
-        # ---------------------------------------------
 
         last_five = get_last_five_days(
             selected_id
@@ -999,21 +887,15 @@ def mobile_home():
             st.markdown(
                 f"""
                 <div style="
-                    font-size:30px;
                     text-align:center;
-                    padding:12px;
+                    font-size:30px;
+                    padding:15px;
                 ">
                     {history}
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-
-            for record_date, symbol in last_five:
-
-                st.write(
-                    f"{symbol} {record_date}"
-                )
 
         else:
 
@@ -1022,17 +904,13 @@ def mobile_home():
             )
 
 
-        # ---------------------------------------------
-        # PREDICTION BUTTON
-        # ---------------------------------------------
-
         if st.button(
             "🤖 Predict Completion",
             use_container_width=True,
             key="home_predict_button"
         ):
 
-            prediction, message = (
+            prediction, error_message = (
                 predict_habit_completion(
                     selected_id
                 )
@@ -1042,13 +920,7 @@ def mobile_home():
             if prediction is None:
 
                 st.warning(
-                    f"⚠️ {message}"
-                )
-
-                st.info(
-                    "Complete or miss this habit for "
-                    "at least 5 days to generate an "
-                    "ML prediction."
+                    f"⚠️ {error_message}"
                 )
 
             else:
@@ -1069,16 +941,16 @@ def mobile_home():
                 )
 
 
-    # =================================================
+    # =====================================================
     # FOOTER
-    # =================================================
+    # =====================================================
 
     st.markdown(
         """
-        <div class="footer-text">
+        <div class="footer">
 
-            AI Smart Habit Tracker
-            •
+            💜 AI Smart Habit Tracker
+            <br>
             Build better habits, one day at a time.
 
         </div>
