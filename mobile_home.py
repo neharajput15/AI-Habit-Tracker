@@ -4,97 +4,23 @@ from datetime import date, datetime
 from database import get_connection
 from ml_prediction import (
     get_recent_consistency,
-    predict_habit_completion,
+    predict_habit_completion
 )
 
 
 def mobile_home():
 
-    # ---------------------------------------------------------
-    # LOAD HABITS
-    # ---------------------------------------------------------
-    conn = get_connection()
-    cursor = conn.cursor()
+    # =========================================================
+    # PAGE CSS
+    # =========================================================
 
-    cursor.execute(
-        """
-        SELECT id, habit_name, category, target, frequency, status
-        FROM habits
-        WHERE user_id = %s
-        ORDER BY id DESC
-        """,
-        (st.session_state["user_id"],),
-    )
-
-    habits = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    # ---------------------------------------------------------
-    # TODAY'S DATE
-    # ---------------------------------------------------------
-    today = date.today()
-    today_text = today.strftime("%A, %d %B %Y")
-
-    # ---------------------------------------------------------
-    # GREETING
-    # ---------------------------------------------------------
-    current_hour = datetime.now().hour
-
-    if current_hour < 12:
-        greeting = "Good Morning 🌅"
-    elif current_hour < 17:
-        greeting = "Good Afternoon ☀️"
-    elif current_hour < 21:
-        greeting = "Good Evening 🌆"
-    else:
-        greeting = "Good Night 🌙"
-
-    # ---------------------------------------------------------
-    # TODAY'S COMPLETION
-    # ---------------------------------------------------------
-    completed_today = 0
-
-    if habits:
-        habit_ids = [habit[0] for habit in habits]
-
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM progress
-            WHERE habit_id = ANY(%s)
-            AND completed_date = CURRENT_DATE::text
-            AND completed = 1
-            """,
-            (habit_ids,),
-        )
-
-        result = cursor.fetchone()
-        completed_today = result[0] if result else 0
-
-        cursor.close()
-        conn.close()
-
-    total_habits = len(habits)
-    pending_today = max(total_habits - completed_today, 0)
-
-    if total_habits > 0:
-        today_progress = completed_today / total_habits
-    else:
-        today_progress = 0
-
-    # ---------------------------------------------------------
-    # MAIN CSS
-    # ---------------------------------------------------------
     st.markdown(
         """
         <style>
 
-        /* ---------- PAGE ---------- */
+        /* ================================
+           MAIN PAGE
+        ================================= */
 
         .stApp {
             background: #08080d;
@@ -102,17 +28,18 @@ def mobile_home():
         }
 
         .main .block-container {
+            max-width: 1200px;
             padding-top: 1.5rem;
             padding-bottom: 3rem;
-            max-width: 1200px;
         }
 
-        /* ---------- BRAND ---------- */
+        /* ================================
+           BRAND
+        ================================= */
 
         .brand-section {
             text-align: center;
-            padding: 20px 10px 25px 10px;
-            margin-bottom: 10px;
+            padding: 15px 10px 25px 10px;
         }
 
         .brand-icon {
@@ -122,10 +49,10 @@ def mobile_home():
         }
 
         .brand-title {
-            color: #ffffff;
+            color: white;
             font-size: 40px;
             font-weight: 900;
-            letter-spacing: 0.5px;
+            letter-spacing: -1px;
         }
 
         .brand-subtitle {
@@ -134,264 +61,363 @@ def mobile_home():
             margin-top: 8px;
         }
 
-        /* ---------- WELCOME ---------- */
+        /* ================================
+           WELCOME
+        ================================= */
 
-        .welcome-box {
-            background: linear-gradient(
-                135deg,
-                #171020,
-                #0e0c14
-            );
-
-            border: 1px solid #322044;
-            border-radius: 20px;
-
-            padding: 25px 30px;
-            margin: 10px 0 25px 0;
-
-            box-shadow: 0 10px 35px rgba(130, 70, 180, 0.12);
+        .welcome-section {
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 30px;
         }
 
         .welcome-title {
-            font-size: 30px;
-            font-weight: 800;
             color: white;
+            font-size: 34px;
+            font-weight: 800;
         }
 
         .welcome-subtitle {
-            color: #b9a9c7;
-            font-size: 14px;
-            margin-top: 7px;
+            color: #a99bb4;
+            font-size: 15px;
+            margin-top: 8px;
         }
 
-        /* ---------- SECTION TITLE ---------- */
+        /* ================================
+           SECTION TITLE
+        ================================= */
 
         .section-title {
-            font-size: 24px;
-            font-weight: 800;
             color: white;
+            font-size: 22px;
+            font-weight: 800;
             margin-top: 20px;
-            margin-bottom: 15px;
+            margin-bottom: 18px;
         }
 
-        /* ---------- STAT CARDS ---------- */
+        /* ================================
+           STAT CARDS
+        ================================= */
 
         .stat-card {
-            background: linear-gradient(
-                145deg,
-                #15111c,
-                #0d0b12
-            );
-
-            border: 1px solid #30203e;
+            background: #111118;
+            border: 1px solid #292333;
             border-radius: 18px;
-
-            padding: 20px;
-
-            min-height: 125px;
-
-            box-shadow: 0 8px 25px rgba(0,0,0,0.25);
-        }
-
-        .stat-label {
-            color: #a99ab6;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .stat-value {
-            color: #ffffff;
-            font-size: 32px;
-            font-weight: 900;
+            padding: 22px;
+            min-height: 145px;
+            text-align: left;
         }
 
         .stat-icon {
-            font-size: 25px;
-            margin-bottom: 5px;
+            font-size: 28px;
+            margin-bottom: 10px;
         }
 
-        /* ---------- PROGRESS ---------- */
+        .stat-label {
+            color: #a99bb4;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            color: white;
+            font-size: 32px;
+            font-weight: 900;
+            margin-top: 4px;
+        }
+
+        /* ================================
+           PROGRESS
+        ================================= */
 
         .progress-card {
-            background: linear-gradient(
-                135deg,
-                #171020,
-                #0d0b12
-            );
-
-            border: 1px solid #39234b;
+            background: #111118;
+            border: 1px solid #292333;
             border-radius: 20px;
-
             padding: 25px;
             margin-top: 25px;
-            margin-bottom: 25px;
         }
 
         .progress-title {
+            color: white;
             font-size: 20px;
             font-weight: 800;
-            color: white;
         }
 
         .progress-number {
-            font-size: 35px;
-            font-weight: 900;
             color: #c084fc;
-            margin-top: 5px;
+            font-size: 40px;
+            font-weight: 900;
+            margin-top: 10px;
         }
 
         .progress-text {
-            color: #aaa0b1;
+            color: #a99bb4;
             font-size: 14px;
-            margin-top: 5px;
         }
 
-        /* ---------- HABIT CARD ---------- */
+        .progress-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: #292333;
+            border-radius: 20px;
+            margin-top: 18px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: #a855f7;
+            border-radius: 20px;
+        }
+
+        .motivation {
+            color: #d8cbe0;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        /* ================================
+           HABIT CARDS
+        ================================= */
 
         .habit-card {
-            background: #110d16;
-
-            border: 1px solid #30203e;
+            background: #111118;
+            border: 1px solid #292333;
             border-radius: 18px;
-
             padding: 20px;
             margin-bottom: 15px;
-
-            transition: 0.2s;
-        }
-
-        .habit-card:hover {
-            border-color: #7c3aed;
-            box-shadow: 0 8px 25px rgba(124,58,237,0.12);
         }
 
         .habit-name {
             color: white;
             font-size: 19px;
             font-weight: 800;
+            margin-bottom: 8px;
         }
 
         .habit-info {
-            color: #a99ab6;
-            font-size: 13px;
-            margin-top: 7px;
+            color: #aaa0b0;
+            font-size: 14px;
+            margin-bottom: 12px;
         }
 
         .habit-category {
             display: inline-block;
-            background: #241631;
-            color: #c084fc;
+            background: #241735;
+            color: #d8a8ff;
             border-radius: 20px;
             padding: 5px 12px;
             font-size: 12px;
-            margin-top: 10px;
+            font-weight: 700;
+            margin-bottom: 10px;
         }
 
         .habit-status {
-            color: #b9a9c7;
+            color: #aaa0b0;
             font-size: 13px;
-            margin-top: 8px;
         }
 
-        /* ---------- AI PREDICTION ---------- */
+        /* ================================
+           AI SECTION
+        ================================= */
 
         .ai-card {
-            background: linear-gradient(
-                135deg,
-                #1b1025,
-                #0d0b12
-            );
-
-            border: 1px solid #4c2864;
+            background: #111118;
+            border: 1px solid #292333;
             border-radius: 20px;
-
             padding: 25px;
             margin-top: 25px;
-            margin-bottom: 25px;
         }
 
         .ai-title {
-            color: #ffffff;
+            color: white;
             font-size: 21px;
             font-weight: 800;
         }
 
         .ai-subtitle {
-            color: #a99ab6;
-            font-size: 13px;
-            margin-top: 5px;
+            color: #a99bb4;
+            font-size: 14px;
+            margin-top: 6px;
+            margin-bottom: 20px;
+        }
+
+        .prediction-box {
+            background: #1a1223;
+            border: 1px solid #43245c;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 15px;
         }
 
         .prediction-value {
             color: #c084fc;
-            font-size: 38px;
+            font-size: 35px;
             font-weight: 900;
-            margin-top: 15px;
         }
 
-        /* ---------- FOOTER ---------- */
-
-        .footer {
-            text-align: center;
-            color: #756a7d;
-            font-size: 12px;
-            margin-top: 45px;
-            padding: 20px;
+        .prediction-text {
+            color: #b9a9c7;
+            font-size: 14px;
         }
 
-        /* ---------- STREAMLIT BUTTON ---------- */
+        /* ================================
+           STREAMLIT BUTTONS
+        ================================= */
 
         .stButton > button {
-            border-radius: 10px;
-            border: 1px solid #4c2864;
-            background: #171020;
+            background: #a855f7;
             color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
         }
 
         .stButton > button:hover {
-            border-color: #a855f7;
-            color: #d8b4fe;
+            background: #9333ea;
+            color: white;
         }
 
-        /* ---------- PROGRESS BAR ---------- */
+        /* ================================
+           FOOTER
+        ================================= */
 
-        .stProgress > div > div {
-            background-color: #8b5cf6;
+        .footer {
+            text-align: center;
+            color: #71677a;
+            font-size: 13px;
+            margin-top: 40px;
+            padding-top: 20px;
         }
 
         </style>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
-    # ---------------------------------------------------------
+    # =========================================================
     # BRAND
-    # ---------------------------------------------------------
+    # =========================================================
+
     st.markdown(
         """
         <div class="brand-section">
 
-            <div class="brand-icon">💜</div>
+            <div class="brand-icon">
+                💜
+            </div>
 
             <div class="brand-title">
                 AI Smart Habit Tracker
             </div>
 
             <div class="brand-subtitle">
-                Build better habits. Track your progress. Become consistent.
+                Build better habits. Track your progress.
+                Become consistent.
             </div>
 
         </div>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
-    # ---------------------------------------------------------
-    # WELCOME
-    # ---------------------------------------------------------
+    # =========================================================
+    # GET USER
+    # =========================================================
+
+    user_id = st.session_state.get("user_id")
+
+    if not user_id:
+        st.warning("Please login first.")
+        return
+
+    # =========================================================
+    # LOAD HABITS
+    # =========================================================
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            """
+            SELECT id, habit_name, category, target, frequency, status
+            FROM habits
+            WHERE user_id = %s
+            ORDER BY id DESC
+            """,
+            (user_id,)
+        )
+
+        habits = cursor.fetchall()
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    # =========================================================
+    # TODAY'S DATE
+    # =========================================================
+
+    today = date.today()
+
+    # =========================================================
+    # COMPLETED TODAY
+    # =========================================================
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM progress p
+            JOIN habits h ON p.habit_id = h.id
+            WHERE h.user_id = %s
+              AND p.completed_date = CURRENT_DATE
+              AND p.completed = 1
+            """,
+            (user_id,)
+        )
+
+        completed_today = cursor.fetchone()[0]
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    total_habits = len(habits)
+    pending = max(total_habits - completed_today, 0)
+
+    if total_habits > 0:
+        progress = round(
+            (completed_today / total_habits) * 100
+        )
+    else:
+        progress = 0
+
+    # =========================================================
+    # GREETING
+    # =========================================================
+
+    hour = datetime.now().hour
+
+    if hour < 12:
+        greeting = "Good Morning 🌅"
+    elif hour < 17:
+        greeting = "Good Afternoon ☀️"
+    elif hour < 21:
+        greeting = "Good Evening 🌆"
+    else:
+        greeting = "Good Night 🌙"
+
+    today_text = today.strftime("%A, %d %B %Y")
+
     st.markdown(
         f"""
-        <div class="welcome-box">
+        <div class="welcome-section">
 
             <div class="welcome-title">
                 {greeting}
@@ -399,20 +425,26 @@ def mobile_home():
 
             <div class="welcome-subtitle">
                 Stay consistent and make progress every day.
-                &nbsp; • &nbsp; {today_text}
+                &nbsp; • &nbsp;
+                {today_text}
             </div>
 
         </div>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
-    # ---------------------------------------------------------
-    # OVERVIEW
-    # ---------------------------------------------------------
+    # =========================================================
+    # TODAY'S OVERVIEW
+    # =========================================================
+
     st.markdown(
-        '<div class="section-title">📊 Today\'s Overview</div>',
-        unsafe_allow_html=True,
+        """
+        <div class="section-title">
+            📊 Today's Overview
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
     col1, col2, col3, col4 = st.columns(4)
@@ -421,55 +453,94 @@ def mobile_home():
         st.markdown(
             f"""
             <div class="stat-card">
-                <div class="stat-icon">📋</div>
-                <div class="stat-label">Total Habits</div>
-                <div class="stat-value">{total_habits}</div>
+
+                <div class="stat-icon">
+                    📋
+                </div>
+
+                <div class="stat-label">
+                    Total Habits
+                </div>
+
+                <div class="stat-value">
+                    {total_habits}
+                </div>
+
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
 
     with col2:
         st.markdown(
             f"""
             <div class="stat-card">
-                <div class="stat-icon">✅</div>
-                <div class="stat-label">Completed Today</div>
-                <div class="stat-value">{completed_today}</div>
+
+                <div class="stat-icon">
+                    ✅
+                </div>
+
+                <div class="stat-label">
+                    Completed Today
+                </div>
+
+                <div class="stat-value">
+                    {completed_today}
+                </div>
+
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
 
     with col3:
         st.markdown(
             f"""
             <div class="stat-card">
-                <div class="stat-icon">⏳</div>
-                <div class="stat-label">Pending</div>
-                <div class="stat-value">{pending_today}</div>
+
+                <div class="stat-icon">
+                    ⏳
+                </div>
+
+                <div class="stat-label">
+                    Pending
+                </div>
+
+                <div class="stat-value">
+                    {pending}
+                </div>
+
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
 
     with col4:
         st.markdown(
             f"""
             <div class="stat-card">
-                <div class="stat-icon">🎯</div>
-                <div class="stat-label">Today's Progress</div>
-                <div class="stat-value">
-                    {int(today_progress * 100)}%
+
+                <div class="stat-icon">
+                    🎯
                 </div>
+
+                <div class="stat-label">
+                    Today's Progress
+                </div>
+
+                <div class="stat-value">
+                    {progress}%
+                </div>
+
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
 
-    # ---------------------------------------------------------
-    # PROGRESS CARD
-    # ---------------------------------------------------------
+    # =========================================================
+    # DAILY PROGRESS
+    # =========================================================
+
     st.markdown(
         f"""
         <div class="progress-card">
@@ -479,55 +550,92 @@ def mobile_home():
             </div>
 
             <div class="progress-number">
-                {int(today_progress * 100)}%
+                {progress}%
             </div>
 
             <div class="progress-text">
-                {completed_today} of {total_habits} habits completed today
+                {completed_today} of {total_habits}
+                habits completed today
+            </div>
+
+            <div class="progress-bar-bg">
+                <div
+                    class="progress-bar-fill"
+                    style="width:{progress}%;">
+                </div>
+            </div>
+
+            <div class="motivation">
+                🔥
+                {"Great work! You're more than halfway there." if progress >= 50
+                else "Keep going! Every small step counts."}
             </div>
 
         </div>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
-    st.progress(today_progress)
+    # =========================================================
+    # MY HABITS
+    # =========================================================
 
-    if total_habits == 0:
-        st.info("No habits added yet. Add your first habit to get started! 💜")
+    st.markdown(
+        """
+        <div class="section-title">
+            📝 My Habits
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    elif today_progress == 1:
-        st.success("🎉 Amazing! You completed all your habits today!")
+    if not habits:
 
-    elif today_progress >= 0.5:
-        st.info("🔥 Great work! You're more than halfway there.")
+        st.info("No habits added yet. Add your first habit!")
 
     else:
-        st.info("💪 Keep going! Complete your habits and build your streak.")
-
-    # ---------------------------------------------------------
-    # MY HABITS
-    # ---------------------------------------------------------
-    st.markdown(
-        '<div class="section-title">📝 My Habits</div>',
-        unsafe_allow_html=True,
-    )
-
-    if habits:
 
         for habit in habits:
 
             habit_id = habit[0]
             habit_name = habit[1]
             category = habit[2] or "General"
-            target = habit[3] or "Daily"
+            target = habit[3] or "-"
             frequency = habit[4] or "Daily"
             status = habit[5] or "Pending"
 
+            # Get consistency
             try:
                 consistency = get_recent_consistency(habit_id)
             except Exception:
                 consistency = 0
+
+            # Check today's status
+            conn = get_connection()
+            cursor = conn.cursor()
+
+            try:
+                cursor.execute(
+                    """
+                    SELECT completed
+                    FROM progress
+                    WHERE habit_id = %s
+                      AND completed_date = CURRENT_DATE
+                    LIMIT 1
+                    """,
+                    (habit_id,)
+                )
+
+                result = cursor.fetchone()
+
+            finally:
+                cursor.close()
+                conn.close()
+
+            if result and result[0] == 1:
+                display_status = "Completed"
+            else:
+                display_status = "Pending"
 
             st.markdown(
                 f"""
@@ -539,7 +647,7 @@ def mobile_home():
 
                     <div class="habit-info">
                         🎯 Target: {target}
-                        &nbsp;&nbsp;•&nbsp;&nbsp;
+                        &nbsp; • &nbsp;
                         🔁 Frequency: {frequency}
                     </div>
 
@@ -548,19 +656,20 @@ def mobile_home():
                     </div>
 
                     <div class="habit-status">
-                        Status: {status}
-                        &nbsp;&nbsp;•&nbsp;&nbsp;
-                        Consistency: {consistency}%
+                        📌 Status: {display_status}
+                        &nbsp; • &nbsp;
+                        📈 Consistency: {consistency}%
                     </div>
 
                 </div>
                 """,
-                unsafe_allow_html=True,
+                unsafe_allow_html=True
             )
 
-    # ---------------------------------------------------------
-    # AI PREDICTION
-    # ---------------------------------------------------------
+    # =========================================================
+    # AI HABIT PREDICTION
+    # =========================================================
+
     st.markdown(
         """
         <div class="ai-card">
@@ -570,66 +679,74 @@ def mobile_home():
             </div>
 
             <div class="ai-subtitle">
-                Machine Learning prediction based on your recent habit history.
+                Machine Learning prediction based on
+                your recent habit history.
             </div>
 
         </div>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
     if habits:
 
-        prediction_options = {
-            habit[0]: habit[1]
-            for habit in habits
+        habit_options = {
+            f"{h[1]}": h[0]
+            for h in habits
         }
 
-        selected_habit_id = st.selectbox(
+        selected_habit = st.selectbox(
             "Select a habit for prediction",
-            options=list(prediction_options.keys()),
-            format_func=lambda x: prediction_options[x],
+            list(habit_options.keys())
         )
 
-        if st.button("🔮 Predict Next Completion", use_container_width=True):
+        selected_id = habit_options[selected_habit]
 
-            try:
-                prediction, error = predict_habit_completion(
-                    selected_habit_id
-                )
+        if st.button("🔮 Predict Completion"):
 
-                if error:
-                    st.warning(error)
-                else:
-                    st.markdown(
-                        f"""
+            prediction, error = predict_habit_completion(
+                selected_id
+            )
+
+            if error:
+
+                st.warning(error)
+
+            else:
+
+                st.markdown(
+                    f"""
+                    <div class="prediction-box">
+
                         <div class="prediction-value">
                             {prediction}%
                         </div>
 
-                        <div class="habit-info">
-                            Estimated chance of completing this habit tomorrow.
+                        <div class="prediction-text">
+                            Predicted probability of completing
+                            <b>{selected_habit}</b> tomorrow.
                         </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
 
-            except Exception as e:
-                st.error(f"Prediction error: {e}")
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
     else:
-        st.info("Add habits first to use AI prediction.")
 
-    # ---------------------------------------------------------
+        st.info("Add a habit to use AI prediction.")
+
+    # =========================================================
     # FOOTER
-    # ---------------------------------------------------------
+    # =========================================================
+
     st.markdown(
         """
         <div class="footer">
             💜 AI Smart Habit Tracker
             <br>
-            Build better habits. Become consistent.
+            Build better habits. Stay consistent.
         </div>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
