@@ -1,19 +1,73 @@
+# ==============================
 # Python
+# ==============================
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
+# ==============================
 # Virtual Environment
+# ==============================
+.venv/
 venv/
-.env/
+env/
+ENV/
 
-# Local SQLite database
-habit_tracker.db
-
-# Remember login file
-remembered_user.txt
-
-# Test / temporary files
-cleanup_test_data.py
-
-# Streamlit
+# ==============================
+# Streamlit Secrets
+# ==============================
 .streamlit/secrets.toml
+
+# ==============================
+# Environment Variables
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# Database / Local Files
+# ==============================
+*.db
+*.sqlite
+*.sqlite3
+
+# ==============================
+# Jupyter Notebook
+# ==============================
+.ipynb_checkpoints/
+
+# ==============================
+# VS Code
+# ==============================
+.vscode/
+
+# ==============================
+# PyCharm
+# ==============================
+.idea/
+
+# ==============================
+# OS Files
+# ==============================
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Logs
+# ==============================
+*.log
+
+# ==============================
+# Temporary Files
+# ==============================
+*.tmp
+*.temp
+
+# ==============================
+# Secrets / API Keys
+# ==============================
+*secret*
+*credentials*
+*.key
+*.pem
