@@ -10,13 +10,20 @@ from database import get_connection
 
 def daily_checkin():
 
-    st.header("📅 Daily Habit Check-in")
+    st.title("Daily Habit Check-in")
+
+    st.caption(
+        "Record whether you completed your habit today."
+    )
 
     user_id = st.session_state.get("user_id")
 
     if not user_id:
+
         st.warning("Please login first.")
+
         return
+
 
     conn = get_connection()
     cursor = conn.cursor()
@@ -24,12 +31,17 @@ def daily_checkin():
     try:
 
         # =================================================
-        # GET USER'S HABITS
+        # GET USER HABITS
         # =================================================
 
         cursor.execute(
             """
-            SELECT id, habit_name
+            SELECT
+                id,
+                habit_name,
+                category,
+                target,
+                frequency
             FROM habits
             WHERE user_id = %s
             ORDER BY id DESC
@@ -39,9 +51,19 @@ def daily_checkin():
 
         habits = cursor.fetchall()
 
+
+        # =================================================
+        # NO HABITS
+        # =================================================
+
         if not habits:
-            st.info("➕ Please add a habit first.")
+
+            st.info(
+                "No habits found. Add a habit first."
+            )
+
             return
+
 
         # =================================================
         # SELECT HABIT
@@ -56,12 +78,44 @@ def daily_checkin():
 
         habit_id = selected[0]
         habit_name = selected[1]
+        category = selected[2]
+        target = selected[3]
+        frequency = selected[4]
 
         today = date.today().isoformat()
 
-        st.markdown(
-            f"### 📌 {habit_name}"
-        )
+
+        # =================================================
+        # HABIT DETAILS
+        # =================================================
+
+        st.subheader(habit_name)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.write(
+                f"**Category:** {category}"
+            )
+
+            st.write(
+                f"**Target:** {target}"
+            )
+
+        with col2:
+
+            st.write(
+                f"**Frequency:** {frequency}"
+            )
+
+            st.write(
+                f"**Date:** {today}"
+            )
+
+
+        st.divider()
+
 
         # =================================================
         # CHECK TODAY'S RECORD
@@ -75,10 +129,14 @@ def daily_checkin():
             AND completed_date = %s
             LIMIT 1
             """,
-            (habit_id, today)
+            (
+                habit_id,
+                today
+            )
         )
 
         existing = cursor.fetchone()
+
 
         # =================================================
         # ALREADY CHECKED IN
@@ -89,22 +147,28 @@ def daily_checkin():
             if existing[1] == 1:
 
                 st.success(
-                    "✅ Today's habit is already marked as Completed."
+                    "This habit has already been marked as completed today."
                 )
 
             else:
 
                 st.warning(
-                    "❌ Today's habit is already marked as Missed."
+                    "This habit has already been marked as missed today."
                 )
 
             return
 
+
         # =================================================
-        # CHECK-IN BUTTONS
+        # CHECK-IN
         # =================================================
 
+        st.write(
+            "Record today's status:"
+        )
+
         col1, col2 = st.columns(2)
+
 
         # =================================================
         # COMPLETED
@@ -113,7 +177,7 @@ def daily_checkin():
         with col1:
 
             if st.button(
-                "✅ Completed",
+                "Completed",
                 use_container_width=True,
                 key=f"checkin_complete_{habit_id}"
             ):
@@ -137,6 +201,7 @@ def daily_checkin():
                         )
                     )
 
+
                     cursor.execute(
                         """
                         UPDATE habits
@@ -151,13 +216,16 @@ def daily_checkin():
                         )
                     )
 
+
                     conn.commit()
 
+
                     st.success(
-                        "🎉 Habit marked as Completed!"
+                        "Habit marked as completed."
                     )
 
                     st.rerun()
+
 
                 except Exception as e:
 
@@ -167,6 +235,7 @@ def daily_checkin():
                         f"Unable to save check-in: {e}"
                     )
 
+
         # =================================================
         # MISSED
         # =================================================
@@ -174,7 +243,7 @@ def daily_checkin():
         with col2:
 
             if st.button(
-                "❌ Missed",
+                "Missed",
                 use_container_width=True,
                 key=f"checkin_missed_{habit_id}"
             ):
@@ -198,6 +267,7 @@ def daily_checkin():
                         )
                     )
 
+
                     cursor.execute(
                         """
                         UPDATE habits
@@ -212,13 +282,16 @@ def daily_checkin():
                         )
                     )
 
+
                     conn.commit()
 
+
                     st.warning(
-                        "Habit marked as Missed ❌"
+                        "Habit marked as missed."
                     )
 
                     st.rerun()
+
 
                 except Exception as e:
 
@@ -228,6 +301,7 @@ def daily_checkin():
                         f"Unable to save check-in: {e}"
                     )
 
+
     except Exception as e:
 
         conn.rollback()
@@ -235,6 +309,7 @@ def daily_checkin():
         st.error(
             f"Unable to load daily check-in: {e}"
         )
+
 
     finally:
 

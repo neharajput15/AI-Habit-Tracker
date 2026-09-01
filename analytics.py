@@ -11,28 +11,40 @@ from database import get_connection
 
 def analytics():
 
-    st.header("📊 Habit Analytics")
+    # -------------------------------------------------
+    # PAGE TITLE
+    # -------------------------------------------------
+
+    st.title("Habit Analytics")
+
+    st.caption(
+        "Review your habit performance and completion trends."
+    )
 
     user_id = st.session_state.get("user_id")
 
     if not user_id:
 
-        st.warning("Please login first.")
+        st.warning(
+            "Please login first."
+        )
 
         return
+
+
+    # =================================================
+    # GET USER HABIT DATA
+    # =================================================
 
     conn = get_connection()
 
     try:
 
-        # =================================================
-        # GET USER'S HABIT DATA
-        # =================================================
-
         query = """
         SELECT
             h.habit_name,
             h.category,
+            h.frequency,
             p.completed_date,
             p.completed
         FROM habits h
@@ -62,7 +74,7 @@ def analytics():
 
 
     # =================================================
-    # NO DATA
+    # CHECK DATA
     # =================================================
 
     if df.empty:
@@ -85,7 +97,7 @@ def analytics():
     if df.empty:
 
         st.info(
-            "Complete some habits to see analytics."
+            "Complete or miss some habits to see analytics."
         )
 
         return
@@ -107,7 +119,7 @@ def analytics():
     if df.empty:
 
         st.info(
-            "No completed or missed records available."
+            "No progress records available."
         )
 
         return
@@ -135,39 +147,45 @@ def analytics():
 
 
     # =================================================
-    # METRICS
+    # SUMMARY
     # =================================================
+
+    st.subheader(
+        "Summary"
+    )
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
 
         st.metric(
-            "📋 Total Records",
+            "Total Records",
             total_records
         )
 
     with col2:
 
         st.metric(
-            "✅ Completed",
+            "Completed",
             completed_records
         )
 
     with col3:
 
         st.metric(
-            "📈 Completion Rate",
+            "Completion Rate",
             f"{completion_rate:.1f}%"
         )
 
 
     # =================================================
-    # COMPLETION CHART
+    # COMPLETION OVERVIEW
     # =================================================
 
+    st.divider()
+
     st.subheader(
-        "📈 Completion Overview"
+        "Completion Overview"
     )
 
     chart_data = pd.DataFrame({
@@ -182,7 +200,9 @@ def analytics():
     })
 
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(
+        figsize=(7, 4)
+    )
 
     ax.bar(
         chart_data["Status"],
@@ -197,17 +217,22 @@ def analytics():
         "Completed vs Missed"
     )
 
-    st.pyplot(fig)
+    st.pyplot(
+        fig,
+        use_container_width=False
+    )
 
     plt.close(fig)
 
 
     # =================================================
-    # HABIT-WISE ANALYSIS
+    # HABIT-WISE PERFORMANCE
     # =================================================
 
+    st.divider()
+
     st.subheader(
-        "📌 Habit-wise Performance"
+        "Habit-wise Performance"
     )
 
     habit_data = (
@@ -219,11 +244,56 @@ def analytics():
     habit_data = habit_data.round(1)
 
 
+    performance_df = (
+        habit_data
+        .rename("Completion %")
+        .reset_index()
+    )
+
+    performance_df.columns = [
+        "Habit",
+        "Completion %"
+    ]
+
+
     st.dataframe(
-        habit_data.rename(
-            "Completion %"
-        ),
-        use_container_width=True
+        performance_df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+
+    # =================================================
+    # HABIT DETAILS
+    # =================================================
+
+    st.divider()
+
+    st.subheader(
+        "Habit Details"
+    )
+
+    habit_details = (
+        df[
+            [
+                "habit_name",
+                "category",
+                "frequency"
+            ]
+        ]
+        .drop_duplicates()
+    )
+
+    habit_details.columns = [
+        "Habit",
+        "Category",
+        "Frequency"
+    ]
+
+    st.dataframe(
+        habit_details,
+        use_container_width=True,
+        hide_index=True
     )
 
 
@@ -238,6 +308,6 @@ def analytics():
         best_percentage = habit_data.max()
 
         st.success(
-            f"🏆 Best Habit: {best_habit} "
+            f"Best Habit: {best_habit} "
             f"({best_percentage:.1f}% completion)"
         )

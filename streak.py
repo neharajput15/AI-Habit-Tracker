@@ -33,31 +33,51 @@ def get_current_streak(habit_id):
         cursor.close()
         conn.close()
 
+
     if not records:
         return 0
+
 
     completed_dates = set()
 
     for row in records:
 
         try:
+
             completed_dates.add(
-                date.fromisoformat(str(row[0]))
+                date.fromisoformat(
+                    str(row[0])
+                )
             )
-        except ValueError:
+
+        except (ValueError, TypeError):
+
             continue
+
 
     if not completed_dates:
         return 0
 
+
     today = date.today()
 
-    # If today is not completed,
-    # start checking from yesterday.
+
+    # =================================================
+    # START FROM TODAY OR YESTERDAY
+    # =================================================
+
     if today in completed_dates:
+
         current_day = today
+
     else:
+
         current_day = today - timedelta(days=1)
+
+
+    # =================================================
+    # CALCULATE STREAK
+    # =================================================
 
     streak = 0
 
@@ -66,6 +86,7 @@ def get_current_streak(habit_id):
         streak += 1
 
         current_day -= timedelta(days=1)
+
 
     return streak
 
@@ -76,24 +97,41 @@ def get_current_streak(habit_id):
 
 def show_streaks():
 
-    st.subheader("🔥 Habit Streaks")
+    st.title("Habit Streaks")
+
+    st.caption(
+        "Track how consistently you maintain your habits."
+    )
+
 
     user_id = st.session_state.get("user_id")
 
     if not user_id:
 
-        st.warning("Please login first.")
+        st.warning(
+            "Please login first."
+        )
 
         return
+
 
     conn = get_connection()
     cursor = conn.cursor()
 
+
     try:
+
+        # =================================================
+        # GET USER HABITS
+        # =================================================
 
         cursor.execute(
             """
-            SELECT id, habit_name
+            SELECT
+                id,
+                habit_name,
+                category,
+                frequency
             FROM habits
             WHERE user_id = %s
             ORDER BY id DESC
@@ -103,33 +141,68 @@ def show_streaks():
 
         habits = cursor.fetchall()
 
+
     finally:
 
         cursor.close()
         conn.close()
 
+
+    # =================================================
+    # NO HABITS
+    # =================================================
+
     if not habits:
 
-        st.info("No habits found.")
+        st.info(
+            "No habits found. Add a habit to start tracking your streak."
+        )
 
         return
 
-    for habit_id, habit_name in habits:
 
-        streak = get_current_streak(habit_id)
+    # =================================================
+    # DISPLAY STREAKS
+    # =================================================
 
-        st.write(
-            f"### 📌 {habit_name}"
+    for habit_id, habit_name, category, frequency in habits:
+
+        streak = get_current_streak(
+            habit_id
         )
 
-        if streak > 0:
 
-            st.success(
-                f"🔥 Current Streak: {streak} days"
+        with st.container(border=True):
+
+            st.subheader(
+                habit_name
             )
 
-        else:
-
-            st.info(
-                "🔥 Current Streak: 0 days"
+            st.caption(
+                f"{category}  •  {frequency}"
             )
+
+
+            st.metric(
+                "Current Streak",
+                f"{streak} days"
+            )
+
+
+            if streak == 0:
+
+                st.caption(
+                    "Complete this habit regularly to build a streak."
+                )
+
+            elif streak == 1:
+
+                st.caption(
+                    "Good start. Try to continue tomorrow."
+                )
+
+            else:
+
+                st.caption(
+                    "Keep going and maintain your consistency."
+                )

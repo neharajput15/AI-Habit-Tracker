@@ -1,6 +1,6 @@
 import streamlit as st
 
-from database import create_tables, get_connection
+from database import create_tables
 
 from login import register, login
 from add_habit import add_habit
@@ -19,13 +19,6 @@ from remember_login import (
 
 
 # =====================================================
-# DATABASE
-# =====================================================
-
-create_tables()
-
-
-# =====================================================
 # PAGE SETTINGS
 # =====================================================
 
@@ -34,6 +27,13 @@ st.set_page_config(
     page_icon="📱",
     layout="centered"
 )
+
+
+# =====================================================
+# DATABASE
+# =====================================================
+
+create_tables()
 
 
 # =====================================================
@@ -66,10 +66,15 @@ if not st.session_state.logged_in:
 
     if saved_user_id is not None:
 
-        conn = get_connection()
-        cursor = conn.cursor()
+        conn = None
+        cursor = None
 
         try:
+
+            from database import get_connection
+
+            conn = get_connection()
+            cursor = conn.cursor()
 
             cursor.execute(
                 """
@@ -99,8 +104,11 @@ if not st.session_state.logged_in:
 
         finally:
 
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+
+            if conn:
+                conn.close()
 
 
 # =====================================================
@@ -276,13 +284,7 @@ else:
 
         st.divider()
 
-        st.subheader(
-            "What do you want to do? 🎯"
-        )
-
-        # ---------------------------------------------
-        # ROW 1
-        # ---------------------------------------------
+        st.subheader("What do you want to do? 🎯")
 
         col1, col2 = st.columns(2)
 
@@ -306,9 +308,6 @@ else:
                 st.session_state.page = "My Habits"
                 st.rerun()
 
-        # ---------------------------------------------
-        # ROW 2
-        # ---------------------------------------------
 
         col1, col2 = st.columns(2)
 
@@ -332,9 +331,6 @@ else:
                 st.session_state.page = "AI"
                 st.rerun()
 
-        # ---------------------------------------------
-        # ROW 3
-        # ---------------------------------------------
 
         col1, col2 = st.columns(2)
 
@@ -358,9 +354,6 @@ else:
                 st.session_state.page = "Check-in"
                 st.rerun()
 
-        # ---------------------------------------------
-        # LOGOUT
-        # ---------------------------------------------
 
         st.divider()
 

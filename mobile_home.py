@@ -10,27 +10,19 @@ from database import get_connection
 
 def mobile_home():
 
-    user_id = st.session_state.get(
-        "user_id"
-    )
-
-    name = st.session_state.get(
-        "name",
-        "User"
-    )
+    user_id = st.session_state.get("user_id")
 
     if not user_id:
 
-        st.warning(
-            "Please login first."
-        )
+        st.warning("Please login first.")
 
         return
 
     today = str(date.today())
 
+
     # =================================================
-    # GET HABITS
+    # DATABASE CONNECTION
     # =================================================
 
     conn = get_connection()
@@ -38,13 +30,18 @@ def mobile_home():
 
     try:
 
+        # ---------------------------------------------
+        # GET USER HABITS
+        # ---------------------------------------------
+
         cursor.execute(
             """
             SELECT
                 id,
                 habit_name,
                 category,
-                target
+                target,
+                frequency
             FROM habits
             WHERE user_id = %s
             ORDER BY id DESC
@@ -54,16 +51,17 @@ def mobile_home():
 
         habits = cursor.fetchall()
 
-        # =================================================
+
+        # ---------------------------------------------
         # COMPLETED TODAY
-        # =================================================
+        # ---------------------------------------------
 
         cursor.execute(
             """
             SELECT COUNT(*)
             FROM progress p
             JOIN habits h
-                ON p.habit_id = h.id
+            ON p.habit_id = h.id
             WHERE h.user_id = %s
             AND p.completed_date = %s
             AND p.completed = 1
@@ -76,78 +74,136 @@ def mobile_home():
 
         completed_today = cursor.fetchone()[0]
 
+
     except Exception as e:
 
         st.error(
-            f"Unable to load home data: {e}"
+            f"Unable to load home page: {e}"
         )
 
         return
+
 
     finally:
 
         cursor.close()
         conn.close()
 
-    # =================================================
-    # HEADER
-    # =================================================
-
-    st.title(
-        "📈 Smart Habit Tracker"
-    )
-
-    st.subheader(
-        f"Good Day, {name} 👋"
-    )
-
-    st.caption(
-        "Let's build better habits today. 🌱"
-    )
 
     # =================================================
-    # STATISTICS
+    # CALCULATIONS
     # =================================================
 
     total_habits = len(habits)
 
-    col1, col2 = st.columns(2)
+    pending_habits = max(
+        total_habits - completed_today,
+        0
+    )
+
+
+    if total_habits > 0:
+
+        percentage = (
+            completed_today / total_habits
+        )
+
+    else:
+
+        percentage = 0
+
+
+    # =================================================
+    # HEADER
+    # =================================================
+
+    st.title("Smart Habit Tracker")
+
+    st.caption(
+        "Build better habits, track your progress, "
+        "and stay consistent."
+    )
+
+
+    # =================================================
+    # SUMMARY
+    # =================================================
+
+    col1, col2, col3 = st.columns(3)
+
 
     with col1:
 
         st.metric(
-            "📋 Total Habits",
+            "Total Habits",
             total_habits
         )
+
 
     with col2:
 
         st.metric(
-            "✅ Completed Today",
-            f"{completed_today}/{total_habits}"
+            "Completed Today",
+            completed_today
         )
 
+
+    with col3:
+
+        st.metric(
+            "Pending",
+            pending_habits
+        )
+
+
+    # =================================================
+    # TODAY'S PROGRESS
+    # =================================================
+
     st.divider()
+
+    st.subheader(
+        "Today's Progress"
+    )
+
+
+    st.progress(
+        min(
+            max(
+                percentage,
+                0.0
+            ),
+            1.0
+        )
+    )
+
+
+    st.caption(
+        f"{completed_today} of {total_habits} habits completed "
+        f"({percentage * 100:.0f}%)"
+    )
+
 
     # =================================================
     # TODAY'S HABITS
     # =================================================
 
+    st.divider()
+
     st.subheader(
-        "Today's Habits 🎯"
+        "Today's Habits"
     )
+
 
     if not habits:
 
         st.info(
-            "No habits added yet."
-        )
-
-        st.write(
-            "Use ➕ Add Habit to create your first habit."
+            "No habits added yet. "
+            "Use Add Habit to create your first habit."
         )
 
         return
+
 
     # =================================================
     # HABIT CARDS
@@ -159,9 +215,11 @@ def mobile_home():
         habit_name = habit[1]
         category = habit[2]
         target = habit[3]
+        frequency = habit[4]
+
 
         # ---------------------------------------------
-        # CHECK TODAY'S PROGRESS
+        # GET TODAY'S STATUS
         # ---------------------------------------------
 
         conn = get_connection()
@@ -184,15 +242,18 @@ def mobile_home():
 
             progress = cursor.fetchone()
 
+
         finally:
 
             cursor.close()
             conn.close()
 
+
         completed = (
             progress is not None
-            and int(progress[0]) == 1
+            and progress[0] == 1
         )
+
 
         # =================================================
         # CARD
@@ -200,48 +261,47 @@ def mobile_home():
 
         with st.container(border=True):
 
-            if completed:
-
-                st.subheader(
-                    f"✅ {habit_name}"
-                )
-
-            else:
-
-                st.subheader(
-                    f"⭕ {habit_name}"
-                )
-
-            st.caption(
-                f"📂 {category}  •  🎯 {target}"
+            st.markdown(
+                f"### {habit_name}"
             )
 
-            # ---------------------------------------------
+            st.caption(
+                f"{category}  •  {frequency}"
+            )
+
+            st.write(
+                f"Target: {target}"
+            )
+
+
+            # -----------------------------------------
             # COMPLETED
-            # ---------------------------------------------
+            # -----------------------------------------
 
             if completed:
 
                 st.success(
-                    "Completed today 🎉"
+                    "Completed today."
                 )
 
                 st.caption(
-                    "🔥 Great job! Keep your streak going!"
+                    "Keep your consistency going."
                 )
 
-            # ---------------------------------------------
+
+            # -----------------------------------------
             # NOT COMPLETED
-            # ---------------------------------------------
+            # -----------------------------------------
 
             else:
 
-                st.warning(
-                    "Not completed today"
+                st.info(
+                    "Not completed today."
                 )
 
+
                 if st.button(
-                    "✅ Complete",
+                    "Complete",
                     key=f"home_complete_{habit_id}",
                     use_container_width=True
                 ):
@@ -270,8 +330,9 @@ def mobile_home():
 
                         existing = cursor.fetchone()
 
+
                         # ---------------------------------
-                        # UPDATE EXISTING RECORD
+                        # UPDATE RECORD
                         # ---------------------------------
 
                         if existing:
@@ -288,8 +349,9 @@ def mobile_home():
                                 )
                             )
 
+
                         # ---------------------------------
-                        # INSERT NEW RECORD
+                        # CREATE RECORD
                         # ---------------------------------
 
                         else:
@@ -311,6 +373,7 @@ def mobile_home():
                                 )
                             )
 
+
                         # ---------------------------------
                         # UPDATE HABIT STATUS
                         # ---------------------------------
@@ -329,13 +392,16 @@ def mobile_home():
                             )
                         )
 
+
                         conn.commit()
 
+
                         st.success(
-                            f"{habit_name} completed! 🎉"
+                            f"{habit_name} completed."
                         )
 
                         st.rerun()
+
 
                     except Exception as e:
 
@@ -345,73 +411,39 @@ def mobile_home():
                             f"Unable to complete habit: {e}"
                         )
 
+
                     finally:
 
                         cursor.close()
                         conn.close()
 
+
     # =================================================
-    # TODAY'S PROGRESS
+    # DAILY SUMMARY
     # =================================================
 
     st.divider()
 
     st.subheader(
-        "📈 Today's Progress"
+        "Daily Summary"
     )
 
-    if total_habits > 0:
 
-        percentage = (
-            completed_today /
-            total_habits
-        )
-
-    else:
-
-        percentage = 0
-
-    percentage = min(
-        max(percentage, 0.0),
-        1.0
-    )
-
-    st.progress(
-        percentage
-    )
-
-    st.write(
-        f"**{completed_today} of "
-        f"{total_habits} habits completed "
-        f"({percentage * 100:.0f}%)**"
-    )
-
-    # =================================================
-    # MOTIVATION
-    # =================================================
-
-    if total_habits == 0:
-
-        st.info(
-            "🌱 Add your first habit to get started!"
-        )
-
-    elif completed_today == total_habits:
+    if completed_today == total_habits and total_habits > 0:
 
         st.success(
-            "🎉 Amazing! You completed all "
-            "your habits today!"
+            "All habits completed today."
         )
 
     elif completed_today > 0:
 
         st.info(
-            "💪 Good progress! Keep going!"
+            "Good progress. "
+            "Keep working on your remaining habits."
         )
 
     else:
 
         st.info(
-            "🌱 Start your day by completing "
-            "your first habit!"
+            "No habits completed yet today."
         )

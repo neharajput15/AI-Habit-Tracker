@@ -25,7 +25,7 @@ def create_tables():
     try:
 
         # =================================================
-        # USERS
+        # USERS TABLE
         # =================================================
 
         cursor.execute(
@@ -39,8 +39,9 @@ def create_tables():
             """
         )
 
+
         # =================================================
-        # HABITS
+        # HABITS TABLE
         # =================================================
 
         cursor.execute(
@@ -51,6 +52,7 @@ def create_tables():
                 habit_name TEXT NOT NULL,
                 category TEXT,
                 target TEXT,
+                frequency TEXT,
                 status TEXT DEFAULT 'Pending',
 
                 FOREIGN KEY (user_id)
@@ -60,8 +62,21 @@ def create_tables():
             """
         )
 
+
         # =================================================
-        # PROGRESS
+        # ADD FREQUENCY TO OLD TABLE
+        # =================================================
+
+        cursor.execute(
+            """
+            ALTER TABLE habits
+            ADD COLUMN IF NOT EXISTS frequency TEXT
+            """
+        )
+
+
+        # =================================================
+        # PROGRESS TABLE
         # =================================================
 
         cursor.execute(
@@ -69,7 +84,7 @@ def create_tables():
             CREATE TABLE IF NOT EXISTS progress (
                 id SERIAL PRIMARY KEY,
                 habit_id INTEGER NOT NULL,
-                completed_date TEXT NOT NULL,
+                completed_date DATE NOT NULL,
                 completed INTEGER DEFAULT 0,
 
                 FOREIGN KEY (habit_id)
@@ -79,13 +94,33 @@ def create_tables():
             """
         )
 
+
+        # =================================================
+        # PREVENT DUPLICATE DAILY RECORDS
+        # =================================================
+
+        cursor.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            unique_habit_completed_date
+            ON progress(habit_id, completed_date)
+            """
+        )
+
+
+        # =================================================
+        # COMMIT CHANGES
+        # =================================================
+
         conn.commit()
+
 
     except Exception as e:
 
         conn.rollback()
 
         raise e
+
 
     finally:
 

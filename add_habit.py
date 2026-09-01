@@ -9,7 +9,11 @@ from database import get_connection
 
 def add_habit():
 
-    st.header("➕ Add New Habit")
+    st.title("Add New Habit")
+
+    st.caption(
+        "Create a habit and set your target and frequency."
+    )
 
     # =================================================
     # HABIT DETAILS
@@ -35,12 +39,24 @@ def add_habit():
         placeholder="Example: Study for 2 hours"
     )
 
+    frequency = st.selectbox(
+        "Frequency",
+        [
+            "Daily",
+            "2 times per week",
+            "3 times per week",
+            "4 times per week",
+            "5 times per week",
+            "Weekly"
+        ]
+    )
+
     # =================================================
     # ADD BUTTON
     # =================================================
 
     if st.button(
-        "➕ Add Habit",
+        "Add Habit",
         use_container_width=True
     ):
 
@@ -51,6 +67,18 @@ def add_habit():
             )
 
             return
+
+        if not target.strip():
+
+            st.warning(
+                "Please enter a target."
+            )
+
+            return
+
+        # =================================================
+        # DATABASE
+        # =================================================
 
         conn = get_connection()
         cursor = conn.cursor()
@@ -65,15 +93,17 @@ def add_habit():
                     habit_name,
                     category,
                     target,
+                    frequency,
                     status
                 )
-                VALUES (%s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 (
                     st.session_state.user_id,
                     habit_name.strip(),
                     category,
                     target.strip(),
+                    frequency,
                     "Pending"
                 )
             )
@@ -81,7 +111,7 @@ def add_habit():
             conn.commit()
 
             st.success(
-                "Habit added successfully! 🎉"
+                "Habit added successfully."
             )
 
             st.rerun()

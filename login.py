@@ -10,32 +10,45 @@ from remember_login import save_user
 
 def register():
 
-    st.header("📝 Create Account")
+    st.title("Create Account")
+
+    st.caption(
+        "Create an account to start tracking your habits."
+    )
 
     name = st.text_input(
         "Name",
-        key="register_name"
+        key="register_name",
+        placeholder="Enter your name"
     )
 
     email = st.text_input(
         "Email",
-        key="register_email"
+        key="register_email",
+        placeholder="Enter your email"
     )
 
     password = st.text_input(
         "Password",
         type="password",
-        key="register_password"
+        key="register_password",
+        placeholder="Enter your password"
     )
 
     confirm_password = st.text_input(
         "Confirm Password",
         type="password",
-        key="confirm_password"
+        key="confirm_password",
+        placeholder="Re-enter your password"
     )
 
+
+    # =================================================
+    # REGISTER BUTTON
+    # =================================================
+
     if st.button(
-        "📝 Register",
+        "Register",
         use_container_width=True
     ):
 
@@ -48,27 +61,35 @@ def register():
             or not email.strip()
             or not password
         ):
+
             st.warning(
-                "Please fill all fields."
+                "Please fill in all fields."
             )
+
             return
+
 
         if password != confirm_password:
 
             st.error(
                 "Passwords do not match."
             )
+
             return
+
 
         email = email.strip().lower()
 
+
         conn = None
         cursor = None
+
 
         try:
 
             conn = get_connection()
             cursor = conn.cursor()
+
 
             # -----------------------------------------
             # CHECK EXISTING EMAIL
@@ -85,13 +106,15 @@ def register():
 
             existing_user = cursor.fetchone()
 
+
             if existing_user:
 
                 st.error(
-                    "Email already registered. Please login."
+                    "This email is already registered. Please login."
                 )
 
                 return
+
 
             # -----------------------------------------
             # CREATE USER
@@ -114,15 +137,18 @@ def register():
                 )
             )
 
+
             conn.commit()
 
+
             st.success(
-                "Registration successful! 🎉"
+                "Registration successful."
             )
 
             st.info(
-                "Now select Login and enter your email and password."
+                "Select Login and enter your email and password."
             )
+
 
         except Exception as e:
 
@@ -132,6 +158,7 @@ def register():
             st.error(
                 f"Registration error: {e}"
             )
+
 
         finally:
 
@@ -148,21 +175,33 @@ def register():
 
 def login():
 
-    st.header("🔐 User Login")
+    st.title("User Login")
+
+    st.caption(
+        "Login to access your habit tracker."
+    )
+
 
     email = st.text_input(
         "Email",
-        key="login_email"
+        key="login_email",
+        placeholder="Enter your email"
     )
 
     password = st.text_input(
         "Password",
         type="password",
-        key="login_password"
+        key="login_password",
+        placeholder="Enter your password"
     )
 
+
+    # =================================================
+    # LOGIN BUTTON
+    # =================================================
+
     if st.button(
-        "🔐 Login",
+        "Login",
         use_container_width=True
     ):
 
@@ -173,20 +212,24 @@ def login():
         if not email.strip() or not password:
 
             st.warning(
-                "Please enter email and password."
+                "Please enter your email and password."
             )
 
             return
 
+
         email = email.strip().lower()
+
 
         conn = None
         cursor = None
+
 
         try:
 
             conn = get_connection()
             cursor = conn.cursor()
+
 
             # -----------------------------------------
             # CHECK USER
@@ -207,6 +250,7 @@ def login():
 
             user = cursor.fetchone()
 
+
         except Exception as e:
 
             st.error(
@@ -214,6 +258,7 @@ def login():
             )
 
             return
+
 
         finally:
 
@@ -223,17 +268,20 @@ def login():
             if conn:
                 conn.close()
 
-        # ---------------------------------------------
+
+        # =================================================
         # LOGIN SUCCESS
-        # ---------------------------------------------
+        # =================================================
 
         if user:
 
             user_id = user[0]
             name = user[1]
 
+
             # Save user for auto-login
             save_user(user_id)
+
 
             # Streamlit session
             st.session_state.logged_in = True
@@ -241,15 +289,17 @@ def login():
             st.session_state.name = name
             st.session_state.page = "Home"
 
+
             st.success(
-                f"Welcome back, {name}! 🎉"
+                "Login successful."
             )
 
             st.rerun()
 
-        # ---------------------------------------------
+
+        # =================================================
         # LOGIN FAILED
-        # ---------------------------------------------
+        # =================================================
 
         else:
 

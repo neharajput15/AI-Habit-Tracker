@@ -1,8 +1,6 @@
 import streamlit as st
 
 from google import genai
-from nlp_helper import analyze_habit
-
 from database import get_connection
 
 from ml_prediction import (
@@ -60,7 +58,7 @@ def get_user_habits():
 
 
 # =====================================================
-# GENERATE GEMINI RESPONSE
+# GENERATE AI RESPONSE
 # =====================================================
 
 def generate_ai_response(prompt):
@@ -91,25 +89,31 @@ def generate_ai_response(prompt):
 
 
 # =====================================================
-# AI HABIT ASSISTANT
+# AI ASSISTANT
 # =====================================================
 
 def ai_assistant():
 
-    st.header("🤖 AI Habit Assistant")
+    st.title("AI Habit Assistant")
+
+    st.caption(
+        "Get habit insights, suggestions and simple recommendations."
+    )
+
 
     # =================================================
     # SMART HABIT COACH
     # =================================================
 
-    st.subheader("📊 Smart Habit Coach")
+    st.subheader("Smart Habit Coach")
 
     habits = get_user_habits()
+
 
     if habits:
 
         selected_habit = st.selectbox(
-            "Select a habit for AI analysis",
+            "Select a habit",
             habits,
             format_func=lambda x: x[1],
             key="ai_habit_select"
@@ -118,17 +122,19 @@ def ai_assistant():
         habit_id = selected_habit[0]
         habit_name = selected_habit[1]
 
-        # ---------------------------------------------
+
+        # =================================================
         # CONSISTENCY
-        # ---------------------------------------------
+        # =================================================
 
         consistency = get_recent_consistency(
             habit_id
         )
 
-        # ---------------------------------------------
+
+        # =================================================
         # ML PREDICTION
-        # ---------------------------------------------
+        # =================================================
 
         prediction, prediction_message = (
             predict_habit_completion(
@@ -136,42 +142,52 @@ def ai_assistant():
             )
         )
 
-        st.write(
-            f"### 📚 {habit_name}"
+
+        st.markdown(
+            f"### {habit_name}"
         )
 
+
+        # =================================================
+        # METRICS
+        # =================================================
+
         col1, col2 = st.columns(2)
+
 
         with col1:
 
             st.metric(
-                "📊 Recent Consistency",
+                "Recent Consistency",
                 f"{consistency:.1f}%"
             )
+
 
         with col2:
 
             if prediction is not None:
 
                 st.metric(
-                    "🤖 Completion Likelihood",
+                    "Completion Likelihood",
                     f"{prediction:.1f}%"
                 )
 
             else:
 
                 st.metric(
-                    "🤖 Completion Likelihood",
+                    "Completion Likelihood",
                     "Not available"
                 )
+
 
         # =================================================
         # SMART RECOMMENDATION
         # =================================================
 
-        st.write(
-            "### 💡 Smart Recommendation"
+        st.markdown(
+            "#### Smart Recommendation"
         )
+
 
         if prediction is None:
 
@@ -185,37 +201,39 @@ def ai_assistant():
             if prediction >= 70:
 
                 st.success(
-                    "🎯 Excellent! Your habit consistency "
-                    "is strong. Keep following your routine."
+                    "Your consistency is strong. "
+                    "Keep following your current routine."
                 )
 
             elif prediction >= 40:
 
                 st.warning(
-                    "⚠️ Your consistency is moderate. "
+                    "Your consistency is moderate. "
                     "Try completing this habit at the same "
-                    "time every day."
+                    "time each day."
                 )
 
             else:
 
-                st.error(
-                    "📌 Your completion likelihood is low. "
-                    "Set a fixed time, start with a small target, "
-                    "and avoid skipping the habit."
+                st.info(
+                    "Your completion likelihood is low. "
+                    "Try a smaller target and set a fixed time "
+                    "for the habit."
                 )
+
 
             # =================================================
             # PERSONALIZED AI ADVICE
             # =================================================
 
             if st.button(
-                "✨ Generate Personalized AI Advice",
-                use_container_width=True
+                "Generate Personalized Advice",
+                use_container_width=True,
+                key="personalized_advice_button"
             ):
 
                 prompt = f"""
-You are an AI habit coach.
+You are a simple AI habit coach.
 
 Habit:
 {habit_name}
@@ -226,29 +244,33 @@ Recent consistency:
 ML predicted completion likelihood:
 {prediction:.1f}%
 
-Give the user:
+Give:
 
-1. One short observation about their habit.
-2. Three practical improvement tips.
+1. One short observation.
+2. Three practical tips.
 3. One simple daily goal.
-4. One motivational sentence.
+4. One short motivational sentence.
 
-Keep the answer simple and suitable for a student.
-Do not use complicated words.
+Use simple language suitable for a college student.
+Keep the response concise.
 """
 
+
                 with st.spinner(
-                    "🤖 AI is preparing personalized advice..."
+                    "Preparing personalized advice..."
                 ):
 
                     response_text, error = (
-                        generate_ai_response(prompt)
+                        generate_ai_response(
+                            prompt
+                        )
                     )
+
 
                 if response_text:
 
-                    st.subheader(
-                        "💡 Personalized AI Advice"
+                    st.markdown(
+                        "#### Personalized Advice"
                     )
 
                     st.write(
@@ -265,33 +287,40 @@ Do not use complicated words.
                         error
                     )
 
+
     else:
 
         st.info(
-            "➕ Add a habit first to use the Smart Habit Coach."
+            "Add a habit first to use the Smart Habit Coach."
         )
 
+
     # =================================================
-    # GENERAL AI
+    # GENERAL AI SUGGESTIONS
     # =================================================
 
-    st.markdown("---")
+    st.divider()
 
     st.subheader(
-        "✨ General AI Habit Suggestions"
+        "AI Habit Suggestions"
     )
 
+    st.caption(
+        "Describe your goals and get suggestions for improving your routine."
+    )
+
+
     user_input = st.text_area(
-        "Tell me about your habits or goals",
+        "Your habits or goals",
         placeholder=(
-            "Example: I want to study Java "
-            "for 2 hours every day..."
+            "Example: I want to study Java for 2 hours every day."
         ),
         key="general_ai_input"
     )
 
+
     if st.button(
-        "✨ Generate AI Suggestion",
+        "Generate Suggestions",
         key="general_ai_button",
         use_container_width=True
     ):
@@ -313,26 +342,30 @@ User's habits and goals:
 
 Provide:
 
-1. Daily routine
-2. Habit improvement suggestions
-3. Short motivation
-4. Weekly goal
+1. A simple daily routine.
+2. Three habit improvement suggestions.
+3. One short motivation.
+4. One weekly goal.
 
-Keep the answer simple, practical and encouraging.
+Keep the response practical, simple and concise.
 """
 
+
             with st.spinner(
-                "🤖 AI is preparing suggestions..."
+                "Generating suggestions..."
             ):
 
                 response_text, error = (
-                    generate_ai_response(prompt)
+                    generate_ai_response(
+                        prompt
+                    )
                 )
+
 
             if response_text:
 
-                st.subheader(
-                    "💡 AI Suggestions"
+                st.markdown(
+                    "#### Suggestions"
                 )
 
                 st.write(
@@ -342,78 +375,9 @@ Keep the answer simple, practical and encouraging.
             else:
 
                 st.error(
-                    "Unable to generate AI suggestions."
+                    "Unable to generate suggestions."
                 )
 
                 st.caption(
                     error
-                )
-
-    # =================================================
-    # NLP HABIT ANALYZER
-    # =================================================
-
-    st.markdown("---")
-
-    st.subheader(
-        "🧠 NLP Habit Analyzer"
-    )
-
-    text = st.text_input(
-        "Describe your habit",
-        placeholder=(
-            "Example: I want to study Java "
-            "for 2 hours every day"
-        ),
-        key="nlp_habit_input"
-    )
-
-    if st.button(
-        "🧠 Analyze Habit",
-        key="nlp_button",
-        use_container_width=True
-    ):
-
-        if not text.strip():
-
-            st.warning(
-                "Please describe your habit."
-            )
-
-        else:
-
-            try:
-
-                result = analyze_habit(
-                    text
-                )
-
-                st.write(
-                    "### 📊 NLP Result"
-                )
-
-                st.write(
-                    f"**Habit:** {result['habit']}"
-                )
-
-                st.write(
-                    f"**Duration:** {result['duration']}"
-                )
-
-                st.write(
-                    f"**Frequency:** {result['frequency']}"
-                )
-
-                st.write(
-                    f"**Category:** {result['category']}"
-                )
-
-            except Exception as e:
-
-                st.error(
-                    "Unable to analyze the habit."
-                )
-
-                st.caption(
-                    f"NLP Error: {e}"
                 )
