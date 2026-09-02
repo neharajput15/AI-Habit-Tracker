@@ -18,7 +18,7 @@ from mobile_home import mobile_home
 
 st.set_page_config(
     page_title="AI Smart Habit Tracker",
-    page_icon="💜",
+    page_icon="🌱",
     layout="wide"
 )
 
@@ -47,7 +47,7 @@ if "page" not in st.session_state:
     st.session_state.page = "Home"
 
 if "dark_mode" not in st.session_state:
-    st.session_state.dark_mode = True
+    st.session_state.dark_mode = False
 
 
 # ============================================================
@@ -56,29 +56,35 @@ if "dark_mode" not in st.session_state:
 
 if st.session_state.dark_mode:
 
+    # -------------------------
     # DARK MODE
-    background = "#080918"
-    card_background = "#121326"
-    text_color = "#FFFFFF"
-    secondary_text = "#AAA7D5"
-    border_color = "#34265B"
-    sidebar_background = "#0D0E1D"
+    # -------------------------
 
-    button_color = "#7025C5"
-    button_hover = "#8438DC"
+    background = "#071817"
+    card_background = "#102321"
+    text_color = "#FFFFFF"
+    secondary_text = "#A8C7C3"
+    border_color = "#28504B"
+    sidebar_background = "#0B1E1C"
+
+    button_color = "#1FA39A"
+    button_hover = "#178B83"
 
 else:
 
+    # -------------------------
     # LIGHT MODE
-    background = "#FAF9FC"
-    card_background = "#FFFFFF"
-    text_color = "#25212B"
-    secondary_text = "#716A7A"
-    border_color = "#E8E1F0"
-    sidebar_background = "#F3F0F6"
+    # -------------------------
 
-    button_color = "#7C4D9E"
-    button_hover = "#6B408A"
+    background = "#F6FBFA"
+    card_background = "#FFFFFF"
+    text_color = "#202827"
+    secondary_text = "#687875"
+    border_color = "#D8E9E6"
+    sidebar_background = "#EEF7F5"
+
+    button_color = "#1FA39A"
+    button_hover = "#178B83"
 
 
 # ============================================================
@@ -94,12 +100,12 @@ st.markdown(
        ====================================================== */
 
     .stApp {{
-        background: {background};
+        background-color: {background};
         color: {text_color};
     }}
 
     .main {{
-        background: {background};
+        background-color: {background};
     }}
 
     .block-container {{
@@ -113,12 +119,12 @@ st.markdown(
        ====================================================== */
 
     [data-testid="stSidebar"] {{
-        background: {sidebar_background};
+        background-color: {sidebar_background};
         border-right: 1px solid {border_color};
     }}
 
     [data-testid="stSidebar"] * {{
-        color: {text_color};
+        color: {text_color} !important;
     }}
 
 
@@ -126,7 +132,12 @@ st.markdown(
        HEADINGS
        ====================================================== */
 
-    h1, h2, h3, h4, h5, h6 {{
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {{
         color: {text_color} !important;
     }}
 
@@ -140,21 +151,21 @@ st.markdown(
        ====================================================== */
 
     .stButton > button {{
-        background: {button_color} !important;
+        background-color: {button_color} !important;
         color: #FFFFFF !important;
 
         border: none !important;
-        border-radius: 8px !important;
+        border-radius: 10px !important;
 
         font-weight: 600 !important;
 
-        min-height: 38px !important;
+        min-height: 40px !important;
 
         transition: 0.2s ease;
     }}
 
     .stButton > button:hover {{
-        background: {button_hover} !important;
+        background-color: {button_hover} !important;
         color: #FFFFFF !important;
     }}
 
@@ -165,11 +176,11 @@ st.markdown(
 
     input,
     textarea {{
-        background: {card_background} !important;
+        background-color: {card_background} !important;
         color: {text_color} !important;
 
         border: 1px solid {border_color} !important;
-        border-radius: 8px !important;
+        border-radius: 10px !important;
     }}
 
     input::placeholder,
@@ -183,11 +194,20 @@ st.markdown(
        ====================================================== */
 
     div[data-baseweb="select"] > div {{
-        background: {card_background} !important;
+        background-color: {card_background} !important;
         color: {text_color} !important;
 
         border: 1px solid {border_color} !important;
-        border-radius: 8px !important;
+        border-radius: 10px !important;
+    }}
+
+
+    /* ======================================================
+       SELECT BOX TEXT
+       ====================================================== */
+
+    div[data-baseweb="select"] span {{
+        color: {text_color} !important;
     }}
 
 
@@ -237,18 +257,49 @@ st.markdown(
 
     [data-testid="stToggle"] label {{
         color: {text_color} !important;
-        font-weight: 600;
+        font-weight: 600 !important;
     }}
 
 
     /* ======================================================
-       SUCCESS / WARNING / ERROR
+       METRIC CARDS
+       ====================================================== */
+
+    div[data-testid="stMetric"] {{
+        background-color: {card_background};
+        border: 1px solid {border_color};
+        border-radius: 14px;
+        padding: 15px;
+    }}
+
+
+    /* ======================================================
+       EXPANDERS
+       ====================================================== */
+
+    div[data-testid="stExpander"] {{
+        background-color: {card_background};
+        border: 1px solid {border_color};
+        border-radius: 14px;
+    }}
+
+
+    /* ======================================================
+       ALERT BOXES
        ====================================================== */
 
     [data-testid="stAlert"] {{
         border-radius: 10px;
     }}
 
+
+    /* ======================================================
+       PROGRESS BAR
+       ====================================================== */
+
+    div[data-testid="stProgressBar"] > div > div {{
+        background-color: {button_color};
+    }}
 
     </style>
     """,
@@ -262,7 +313,7 @@ st.markdown(
 
 if not st.session_state.logged_in:
 
-    st.title("💜 AI Smart Habit Tracker")
+    st.title("🌱 AI Smart Habit Tracker")
 
     st.write(
         "Build better habits. Track your progress. "
@@ -272,7 +323,10 @@ if not st.session_state.logged_in:
     st.divider()
 
     login_tab, register_tab = st.tabs(
-        ["🔐 Login", "📝 Register"]
+        [
+            "🔐 Login",
+            "📝 Register"
+        ]
     )
 
     with login_tab:
@@ -290,17 +344,17 @@ if not st.session_state.logged_in:
 
 with st.sidebar:
 
-    st.title("💜 Habit Tracker")
+    st.title("🌱 Habit Tracker")
 
     st.write(
-        f"Welcome, {st.session_state.name}"
+        f"Welcome, {st.session_state.name} 👋"
     )
 
     st.divider()
 
 
     # ========================================================
-    # LIGHT / DARK MODE
+    # THEME
     # ========================================================
 
     if st.session_state.dark_mode:
@@ -422,10 +476,19 @@ with st.sidebar:
 # PAGE ROUTING
 # ============================================================
 
+
+# ============================================================
+# HOME
+# ============================================================
+
 if st.session_state.page == "Home":
 
     mobile_home()
 
+
+# ============================================================
+# ADD HABIT
+# ============================================================
 
 elif st.session_state.page == "Add Habit":
 
@@ -434,12 +497,20 @@ elif st.session_state.page == "Add Habit":
     add_habit()
 
 
+# ============================================================
+# MY HABITS
+# ============================================================
+
 elif st.session_state.page == "My Habits":
 
     st.header("📝 My Habits")
 
     view_habits()
 
+
+# ============================================================
+# PROGRESS
+# ============================================================
 
 elif st.session_state.page == "Progress":
 
@@ -448,6 +519,10 @@ elif st.session_state.page == "Progress":
     dashboard()
 
 
+# ============================================================
+# DAILY CHECK-IN
+# ============================================================
+
 elif st.session_state.page == "Daily Check-in":
 
     st.header("✅ Daily Check-in")
@@ -455,12 +530,20 @@ elif st.session_state.page == "Daily Check-in":
     daily_checkin()
 
 
+# ============================================================
+# AI ASSISTANT
+# ============================================================
+
 elif st.session_state.page == "AI Assistant":
 
     st.header("🤖 AI Assistant")
 
     ai_assistant()
 
+
+# ============================================================
+# STREAKS
+# ============================================================
 
 elif st.session_state.page == "Streaks":
 
