@@ -1,6 +1,7 @@
 import streamlit as st
 
 from database import get_connection
+from theme import apply_theme
 
 
 def add_habit():
@@ -22,39 +23,39 @@ def add_habit():
     }
 
     .page-title {
-        color: white;
+        color: var(--text);
         font-size: 30px;
         font-weight: 800;
         margin-top: 8px;
     }
 
     .page-subtitle {
-        color: #aaa2b9;
+        color: var(--secondary);
         font-size: 14px;
         margin-top: 8px;
     }
 
     .form-card {
-        background: #111117;
-        border: 1px solid #302b3b;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
         border-radius: 18px;
         padding: 28px;
         margin-bottom: 25px;
     }
 
     .form-title {
-        color: white;
+        color: var(--text);
         font-size: 20px;
         font-weight: 700;
         margin-bottom: 20px;
     }
 
     .info-card {
-        background: #18111f;
-        border: 1px solid #49315e;
+        background: var(--soft-bg);
+        border: 1px solid var(--border);
         border-radius: 14px;
         padding: 18px;
-        color: #c9bdd8;
+        color: var(--secondary);
         font-size: 13px;
         margin-top: 15px;
     }
@@ -62,10 +63,10 @@ def add_habit():
     div.stButton > button {
         background: linear-gradient(
             90deg,
-            #7c3aed,
-            #9333ea
+            var(--primary-dark),
+            var(--primary)
         );
-        color: white;
+        color: var(--text);
         border: none;
         border-radius: 10px;
         font-weight: 600;
@@ -75,14 +76,17 @@ def add_habit():
     div.stButton > button:hover {
         background: linear-gradient(
             90deg,
-            #9333ea,
-            #a855f7
+            var(--primary),
+            var(--primary)
         );
-        color: white;
+        color: var(--text);
     }
 
     </style>
     """, unsafe_allow_html=True)
+
+
+    apply_theme()
 
 
     # =====================================================
