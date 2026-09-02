@@ -3,21 +3,136 @@ import streamlit as st
 from database import get_connection
 
 
-# =====================================================
-# ADD HABIT
-# =====================================================
-
 def add_habit():
 
-    st.title("Add New Habit")
+    # =====================================================
+    # CSS
+    # =====================================================
 
-    st.caption(
-        "Create a habit and set your target and frequency."
-    )
+    st.markdown("""
+    <style>
 
-    # =================================================
-    # HABIT DETAILS
-    # =================================================
+    .page-header {
+        text-align: center;
+        padding: 20px 10px 30px 10px;
+    }
+
+    .page-icon {
+        font-size: 42px;
+    }
+
+    .page-title {
+        color: white;
+        font-size: 30px;
+        font-weight: 800;
+        margin-top: 8px;
+    }
+
+    .page-subtitle {
+        color: #aaa2b9;
+        font-size: 14px;
+        margin-top: 8px;
+    }
+
+    .form-card {
+        background: #111117;
+        border: 1px solid #302b3b;
+        border-radius: 18px;
+        padding: 28px;
+        margin-bottom: 25px;
+    }
+
+    .form-title {
+        color: white;
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+
+    .info-card {
+        background: #18111f;
+        border: 1px solid #49315e;
+        border-radius: 14px;
+        padding: 18px;
+        color: #c9bdd8;
+        font-size: 13px;
+        margin-top: 15px;
+    }
+
+    div.stButton > button {
+        background: linear-gradient(
+            90deg,
+            #7c3aed,
+            #9333ea
+        );
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        min-height: 44px;
+    }
+
+    div.stButton > button:hover {
+        background: linear-gradient(
+            90deg,
+            #9333ea,
+            #a855f7
+        );
+        color: white;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
+
+    # =====================================================
+    # LOGIN CHECK
+    # =====================================================
+
+    user_id = st.session_state.get("user_id")
+
+    if not user_id:
+        st.warning("Please login first.")
+        return
+
+
+    # =====================================================
+    # HEADER
+    # =====================================================
+
+    st.html("""
+    <div class="page-header">
+
+        <div class="page-icon">
+            ➕
+        </div>
+
+        <div class="page-title">
+            Add New Habit
+        </div>
+
+        <div class="page-subtitle">
+            Create a habit and start building your routine.
+        </div>
+
+    </div>
+    """)
+
+
+    # =====================================================
+    # FORM
+    # =====================================================
+
+    st.html("""
+    <div class="form-card">
+
+        <div class="form-title">
+            ✨ Habit Details
+        </div>
+
+    </div>
+    """)
+
 
     habit_name = st.text_input(
         "Habit Name",
@@ -30,55 +145,65 @@ def add_habit():
             "Study",
             "Health",
             "Fitness",
-            "Personal"
+            "Personal",
+            "Work",
+            "Other"
         ]
     )
 
     target = st.text_input(
-        "Target",
-        placeholder="Example: Study for 2 hours"
+        "Target / Goal",
+        placeholder="Example: 2 hours"
     )
 
     frequency = st.selectbox(
         "Frequency",
         [
             "Daily",
-            "2 times per week",
-            "3 times per week",
-            "4 times per week",
-            "5 times per week",
-            "Weekly"
+            "Weekly",
+            "Weekdays",
+            "Weekends"
         ]
     )
 
-    # =================================================
+
+    st.html("""
+    <div class="info-card">
+        💡 <b>Tip:</b> Start with a simple and realistic
+        target. Small habits are easier to maintain.
+    </div>
+    """)
+
+
+    st.write("")
+
+
+    # =====================================================
     # ADD BUTTON
-    # =================================================
+    # =====================================================
 
     if st.button(
-        "Add Habit",
+        "➕ Add Habit",
         use_container_width=True
     ):
 
         if not habit_name.strip():
 
-            st.warning(
+            st.error(
                 "Please enter a habit name."
             )
 
             return
 
+
         if not target.strip():
 
-            st.warning(
+            st.error(
                 "Please enter a target."
             )
 
             return
 
-        # =================================================
-        # DATABASE
-        # =================================================
 
         conn = get_connection()
         cursor = conn.cursor()
@@ -99,7 +224,7 @@ def add_habit():
                 VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 (
-                    st.session_state.user_id,
+                    user_id,
                     habit_name.strip(),
                     category,
                     target.strip(),
@@ -111,7 +236,7 @@ def add_habit():
             conn.commit()
 
             st.success(
-                "Habit added successfully."
+                f"🎉 '{habit_name}' added successfully!"
             )
 
             st.rerun()
